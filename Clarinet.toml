@@ -1,0 +1,11 @@
+[project]
+name = "token-faucet"
+requirements = []
+costs_version = 2
+with_epoch_2_0 = true
+with_epoch_2_1 = true
+
+[contracts.token-faucet]
+path = "contracts/token-faucet.clar"
+clarity_version = 1
+depends_on = []
