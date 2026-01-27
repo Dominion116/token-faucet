@@ -11,8 +11,7 @@ pnpm-debug.log*
 # Clarinet
 .cache/
 target/
-settings/Development.toml
-settings/Simnet.toml
+settings/*.toml
 
 # OS
 .DS_Store
