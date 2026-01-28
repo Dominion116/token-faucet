@@ -287,7 +287,7 @@ export default function App() {
   const canClaim = userData && timeRemaining === 0 && stats.isActive;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col">
+    <div className="min-h-screen bg-background flex flex-col font-sans antialiased">
       <Navbar 
         userData={userData}
         onConnect={handleConnect}
@@ -295,16 +295,16 @@ export default function App() {
       />
       
       {/* Background pattern */}
-      <div className="fixed inset-0 bg-[linear-gradient(rgba(34,197,94,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(34,197,94,0.03)_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none" />
+      <div className="fixed inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
       
       <main className="flex-1 relative z-10 container mx-auto px-4 py-8 md:py-12 max-w-5xl">
         {/* Success Toast */}
         {showSuccess && (
-          <div className="fixed top-20 right-4 z-50 animate-in slide-in-from-right">
-            <Card className="bg-green-500/10 border-green-500/30">
+          <div className="fixed top-20 right-4 z-50 animate-in slide-in-from-right fade-in duration-300">
+            <Card className="bg-background border-green-500/50 shadow-lg">
               <CardContent className="flex items-center gap-3 p-4">
                 <CheckCircle className="h-5 w-5 text-green-500" />
-                <span className="text-green-400 font-medium">{successMessage}</span>
+                <span className="text-foreground font-medium">{successMessage}</span>
               </CardContent>
             </Card>
           </div>
@@ -312,7 +312,7 @@ export default function App() {
 
         {/* Hero Section */}
         <div className="text-center mb-12 animate-in slide-in-from-bottom duration-700 fade-in">
-          <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent mb-4">
+          <h1 className="text-4xl md:text-6xl font-bold text-foreground tracking-tight mb-4">
             Testnet Faucet
           </h1>
           <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto">
@@ -322,46 +322,46 @@ export default function App() {
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8">
-          <Card className="bg-slate-900/50 border-slate-800">
+          <Card className="bg-card hover:bg-accent/50 transition-colors">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <Activity className="h-4 w-4 text-green-500" />
+                <Activity className="h-4 w-4 text-chart-1" />
                 <span className="text-xs text-muted-foreground">Dispensed</span>
               </div>
-              <p className="text-lg md:text-xl font-bold text-green-400">
+              <p className="text-lg md:text-xl font-bold text-foreground">
                 {stats.totalDispensed.toLocaleString()} STX
               </p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-900/50 border-slate-800">
+          <Card className="bg-card hover:bg-accent/50 transition-colors">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <Wallet className="h-4 w-4 text-purple-500" />
+                <Wallet className="h-4 w-4 text-chart-2" />
                 <span className="text-xs text-muted-foreground">Claims</span>
               </div>
-              <p className="text-lg md:text-xl font-bold text-purple-400">
+              <p className="text-lg md:text-xl font-bold text-foreground">
                 {stats.totalClaims.toLocaleString()}
               </p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-900/50 border-slate-800">
+          <Card className="bg-card hover:bg-accent/50 transition-colors">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <Coins className="h-4 w-4 text-cyan-500" />
+                <Coins className="h-4 w-4 text-chart-3" />
                 <span className="text-xs text-muted-foreground">Balance</span>
               </div>
-              <p className="text-lg md:text-xl font-bold text-cyan-400">
+              <p className="text-lg md:text-xl font-bold text-foreground">
                 {stats.contractBalance.toLocaleString()} STX
               </p>
             </CardContent>
           </Card>
-          <Card className="bg-slate-900/50 border-slate-800">
+          <Card className="bg-card hover:bg-accent/50 transition-colors">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2">
-                <Droplets className="h-4 w-4 text-amber-500" />
+                <Droplets className="h-4 w-4 text-chart-4" />
                 <span className="text-xs text-muted-foreground">Per Claim</span>
               </div>
-              <p className="text-lg md:text-xl font-bold text-amber-400">
+              <p className="text-lg md:text-xl font-bold text-foreground">
                 {stats.faucetAmount} STX
               </p>
             </CardContent>
@@ -369,9 +369,9 @@ export default function App() {
         </div>
 
         {/* Main Card */}
-        <Card className="bg-slate-900/70 border-slate-800 mb-8">
+        <Card className="mb-8">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
+            <CardTitle className="flex items-center gap-2 text-foreground">
               <Droplets className="h-5 w-5 text-primary" />
               Claim Tokens
             </CardTitle>
@@ -382,10 +382,10 @@ export default function App() {
           <CardContent className="space-y-6">
             {!userData ? (
               <div className="text-center py-8">
-                <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <div className="mx-auto w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-4">
                   <Wallet className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">Connect Your Wallet</h3>
+                <h3 className="text-lg font-semibold text-foreground mb-2">Connect Your Wallet</h3>
                 <p className="text-muted-foreground text-sm mb-6">
                   Connect a Stacks wallet to claim testnet tokens
                 </p>
@@ -397,11 +397,11 @@ export default function App() {
             ) : (
               <>
                 {/* Connected Wallet Info */}
-                <div className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
+                <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg border border-border">
                   <span className="text-sm text-muted-foreground">Logged in via Stacks</span>
                   <div className="flex items-center gap-3">
                     <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-sm font-mono text-muted-foreground">
+                    <span className="text-sm font-mono text-foreground">
                       {walletAddress.slice(0, 8)}...{walletAddress.slice(-6)}
                     </span>
                   </div>
@@ -409,10 +409,10 @@ export default function App() {
 
                 {/* Cooldown Timer */}
                 {timeRemaining > 0 && (
-                  <div className="text-center p-6 bg-purple-500/5 border border-purple-500/20 rounded-lg">
-                    <Clock className="h-8 w-8 text-purple-500 mx-auto mb-3" />
+                  <div className="text-center p-6 bg-secondary/20 border border-border rounded-lg">
+                    <Clock className="h-8 w-8 text-primary mx-auto mb-3" />
                     <p className="text-sm text-muted-foreground mb-2">Cooldown Active</p>
-                    <p className="text-3xl font-bold font-mono text-purple-400">
+                    <p className="text-3xl font-bold font-mono text-foreground">
                       {formatTime(timeRemaining)}
                     </p>
                   </div>
@@ -439,7 +439,7 @@ export default function App() {
                 </Button>
 
                 {/* Fund Section */}
-                <div className="pt-6 border-t border-slate-800">
+                <div className="pt-6 border-t border-border">
                   <h4 className="text-sm font-medium text-muted-foreground mb-3">
                     Fund the Faucet
                   </h4>
@@ -449,7 +449,7 @@ export default function App() {
                       value={fundAmount}
                       onChange={(e) => setFundAmount(e.target.value)}
                       placeholder="Amount in STX"
-                      className="bg-slate-800/50"
+                      className="bg-background border-input"
                     />
                     <Button 
                       onClick={handleFund} 
@@ -467,9 +467,9 @@ export default function App() {
 
         {/* Claim History */}
         {claimHistory.length > 0 && (
-          <Card className="bg-slate-900/50 border-slate-800">
+          <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Recent Claims</CardTitle>
+              <CardTitle className="text-lg text-foreground">Recent Claims</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -479,13 +479,13 @@ export default function App() {
                     href={`https://explorer.hiro.so/txid/${claim.txId}?chain=testnet`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg hover:bg-slate-800/50 transition-colors group"
+                    className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary/80 transition-colors group border border-transparent hover:border-border"
                   >
                     <span className="text-sm font-mono text-muted-foreground">
                       {claim.address}
                     </span>
                     <div className="flex items-center gap-3">
-                      <span className="text-green-400 font-semibold">
+                      <span className="text-foreground font-medium">
                         +{claim.amount} STX
                       </span>
                       <span className="text-xs text-muted-foreground">
