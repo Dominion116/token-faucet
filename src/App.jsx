@@ -14,7 +14,8 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Droplets, Wallet, Clock, Activity, CheckCircle, LogOut, Coins, ExternalLink, Loader2 } from 'lucide-react';
+import { Droplets, Wallet, Clock, Activity, CheckCircle, Coins, ExternalLink, Loader2 } from 'lucide-react';
+import Navbar from '@/components/Navbar';
 
 const appConfig = new AppConfig(['store_write', 'publish_data']);
 const userSession = new UserSession({ appConfig });
@@ -286,14 +287,20 @@ export default function App() {
   const canClaim = userData && timeRemaining === 0 && stats.isActive;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex flex-col">
+      <Navbar 
+        userData={userData}
+        onConnect={handleConnect}
+        onLogout={handleLogout}
+      />
+      
       {/* Background pattern */}
       <div className="fixed inset-0 bg-[linear-gradient(rgba(34,197,94,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(34,197,94,0.03)_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none" />
       
-      <div className="relative z-10 container mx-auto px-4 py-8 md:py-16 max-w-5xl">
+      <main className="flex-1 relative z-10 container mx-auto px-4 py-8 md:py-12 max-w-5xl">
         {/* Success Toast */}
         {showSuccess && (
-          <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right">
+          <div className="fixed top-20 right-4 z-50 animate-in slide-in-from-right">
             <Card className="bg-green-500/10 border-green-500/30">
               <CardContent className="flex items-center gap-3 p-4">
                 <CheckCircle className="h-5 w-5 text-green-500" />
@@ -303,20 +310,15 @@ export default function App() {
           </div>
         )}
 
-        {/* Header */}
-        <header className="text-center mb-12">
-          <div className="flex items-center justify-center gap-4 mb-4">
-            <div className="p-3 rounded-full bg-primary/10 border border-primary/20">
-              <Droplets className="h-10 w-10 md:h-12 md:w-12 text-primary" />
-            </div>
-            <h1 className="text-3xl md:text-5xl font-bold bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">
-              STX Faucet
-            </h1>
-          </div>
-          <p className="text-muted-foreground text-sm md:text-base">
-            Get free testnet STX tokens for development
+        {/* Hero Section */}
+        <div className="text-center mb-12 animate-in slide-in-from-bottom duration-700 fade-in">
+          <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent mb-4">
+            Testnet Faucet
+          </h1>
+          <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto">
+            Get free Stacks (STX) tokens instantly for your blockchain development and testing needs.
           </p>
-        </header>
+        </div>
 
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8">
@@ -394,18 +396,15 @@ export default function App() {
               </div>
             ) : (
               <>
-                {/* Connected Wallet */}
+                {/* Connected Wallet Info */}
                 <div className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
+                  <span className="text-sm text-muted-foreground">Logged in via Stacks</span>
                   <div className="flex items-center gap-3">
                     <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
                     <span className="text-sm font-mono text-muted-foreground">
                       {walletAddress.slice(0, 8)}...{walletAddress.slice(-6)}
                     </span>
                   </div>
-                  <Button variant="ghost" size="sm" onClick={handleLogout}>
-                    <LogOut className="h-4 w-4 mr-1" />
-                    Logout
-                  </Button>
                 </div>
 
                 {/* Cooldown Timer */}
@@ -505,7 +504,7 @@ export default function App() {
         <footer className="mt-12 text-center text-muted-foreground text-sm">
           <p>Powered by Stacks Blockchain • Testnet</p>
         </footer>
-      </div>
+      </main>
     </div>
   );
 }
