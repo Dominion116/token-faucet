@@ -1,24 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { Droplets, Clock, Wallet, Zap, Activity, CheckCircle, LogOut, Coins } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
 import { AppConfig, UserSession, showConnect } from '@stacks/connect';
 import { StacksTestnet } from '@stacks/network';
 import { 
   callReadOnlyFunction, 
   cvToValue, 
   standardPrincipalCV,
-  uintCV,
-  AnchorMode,
-  PostConditionMode
+  uintCV
 } from '@stacks/transactions';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Droplets, Wallet, Clock, Activity, CheckCircle, LogOut, Coins, ExternalLink, Loader2 } from 'lucide-react';
 
 const appConfig = new AppConfig(['store_write', 'publish_data']);
 const userSession = new UserSession({ appConfig });
 const network = new StacksTestnet();
-const contractAddress = 'ST30VGN68PSGVWGNMD0HH2WQMM5T486EK3WBNTHCY';
-const contractName = 'token-faucet';
+const CONTRACT_ADDRESS = 'ST30VGN68PSGVWGNMD0HH2WQMM5T486EK3WBNTHCY';
+const CONTRACT_NAME = 'token-faucet';
 
-export default function TokenFaucet() {
+export default function App() {
   const [userData, setUserData] = useState(null);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [claiming, setClaiming] = useState(false);
@@ -26,14 +26,54 @@ export default function TokenFaucet() {
   const [fundAmount, setFundAmount] = useState('100');
   const [claimHistory, setClaimHistory] = useState([]);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [stats, setStats] = useState({
-    totalDispensed: '0',
-    totalClaims: '0',
-    faucetAmount: '10',
-    contractBalance: '0',
+    totalDispensed: 0,
+    totalClaims: 0,
+    faucetAmount: 10,
+    contractBalance: 0,
     isActive: true
   });
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const result = await callReadOnlyFunction({
+        network,
+        contractAddress: CONTRACT_ADDRESS,
+        contractName: CONTRACT_NAME,
+        functionName: 'get-faucet-stats',
+        functionArgs: [],
+        senderAddress: CONTRACT_ADDRESS,
+      });
+      const data = cvToValue(result).value;
+      setStats({
+        totalDispensed: Number(data['total-dispensed']) / 1000000,
+        totalClaims: Number(data['total-claims']),
+        faucetAmount: Number(data['faucet-amount']) / 1000000,
+        contractBalance: Number(data['contract-balance']) / 1000000,
+        isActive: data['is-active']
+      });
+    } catch (e) {
+      console.error("Error fetching stats:", e);
+    }
+  }, []);
+
+  const updateCooldown = useCallback(async (address) => {
+    try {
+      const result = await callReadOnlyFunction({
+        network,
+        contractAddress: CONTRACT_ADDRESS,
+        contractName: CONTRACT_NAME,
+        functionName: 'get-time-until-next-claim',
+        functionArgs: [standardPrincipalCV(address)],
+        senderAddress: address,
+      });
+      const seconds = Number(cvToValue(result).value);
+      setTimeRemaining(seconds * 1000);
+    } catch (e) {
+      console.error("Error fetching cooldown:", e);
+    }
+  }, []);
 
   useEffect(() => {
     if (userSession.isUserSignedIn()) {
@@ -41,7 +81,7 @@ export default function TokenFaucet() {
     }
     fetchStats();
     
-    const history = localStorage.getItem('claimHistory');
+    const history = localStorage.getItem('faucetClaimHistory');
     if (history) {
       setClaimHistory(JSON.parse(history));
     }
@@ -55,47 +95,22 @@ export default function TokenFaucet() {
     }, 10000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [fetchStats, updateCooldown]);
 
-  const fetchStats = async () => {
-    try {
-      const result = await callReadOnlyFunction({
-        network,
-        contractAddress,
-        contractName,
-        functionName: 'get-faucet-stats',
-        functionArgs: [],
-        senderAddress: contractAddress,
-      });
-      const data = cvToValue(result).value;
-      setStats({
-        totalDispensed: (Number(data['total-dispensed']) / 1000000).toLocaleString(),
-        totalClaims: data['total-claims'].toString(),
-        faucetAmount: (Number(data['faucet-amount']) / 1000000).toString(),
-        contractBalance: (Number(data['contract-balance']) / 1000000).toLocaleString(),
-        isActive: data['is-active']
-      });
-    } catch (e) {
-      console.error("Error fetching stats:", e);
+  useEffect(() => {
+    if (userData) {
+      updateCooldown(userData.profile.stxAddress.testnet);
     }
-  };
+  }, [userData, updateCooldown]);
 
-  const updateCooldown = async (address) => {
-    try {
-      const result = await callReadOnlyFunction({
-        network,
-        contractAddress,
-        contractName,
-        functionName: 'get-time-until-next-claim',
-        functionArgs: [standardPrincipalCV(address)],
-        senderAddress: address,
-      });
-      const seconds = Number(cvToValue(result).value);
-      setTimeRemaining(seconds * 1000);
-    } catch (e) {
-      console.error("Error fetching cooldown:", e);
+  useEffect(() => {
+    if (timeRemaining > 0) {
+      const timer = setInterval(() => {
+        setTimeRemaining(prev => Math.max(0, prev - 1000));
+      }, 1000);
+      return () => clearInterval(timer);
     }
-  };
+  }, [timeRemaining]);
 
   const handleConnect = () => {
     showConnect({
@@ -104,9 +119,9 @@ export default function TokenFaucet() {
         icon: window.location.origin + '/logo.png',
       },
       onFinish: () => {
-        setUserData(userSession.loadUserData());
-        const address = userSession.loadUserData().profile.stxAddress.testnet;
-        updateCooldown(address);
+        const data = userSession.loadUserData();
+        setUserData(data);
+        updateCooldown(data.profile.stxAddress.testnet);
       },
       userSession,
     });
@@ -115,6 +130,7 @@ export default function TokenFaucet() {
   const handleLogout = () => {
     userSession.signUserOut();
     setUserData(null);
+    setTimeRemaining(0);
   };
 
   const formatTime = (ms) => {
@@ -122,7 +138,7 @@ export default function TokenFaucet() {
     const totalSeconds = Math.floor(ms / 1000);
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
   };
 
   const handleClaim = async () => {
@@ -131,38 +147,37 @@ export default function TokenFaucet() {
     
     const address = userData.profile.stxAddress.testnet;
     
-    await showConnect({
-      contractAddress,
-      contractName,
-      functionName: 'claim',
-      functionArgs: [],
-      network,
-      anchorMode: AnchorMode.Any,
-      postConditionMode: PostConditionMode.Allow,
-      onFinish: (data) => {
-        const newClaim = {
-          amount: stats.faucetAmount,
-          timestamp: Date.now(),
-          address: address.slice(0, 8) + '...' + address.slice(-6),
-          txId: data.txId
-        };
-        const updatedHistory = [newClaim, ...claimHistory.slice(0, 4)];
-        setClaimHistory(updatedHistory);
-        localStorage.setItem('claimHistory', JSON.stringify(updatedHistory));
-        setSuccessMsg(`Claiming ${stats.faucetAmount} STX...`);
-        setShowSuccess(true);
-        setClaiming(false);
-        setTimeout(() => setShowSuccess(false), 5000);
-      },
-      onCancel: () => {
-        setClaiming(false);
-      },
-      userSession,
-      appDetails: {
-        name: 'STX Faucet',
-        icon: window.location.origin + '/logo.png',
-      }
-    });
+    try {
+      const { openContractCall } = await import('@stacks/connect');
+      
+      await openContractCall({
+        contractAddress: CONTRACT_ADDRESS,
+        contractName: CONTRACT_NAME,
+        functionName: 'claim',
+        functionArgs: [],
+        network,
+        onFinish: (data) => {
+          const newClaim = {
+            amount: stats.faucetAmount,
+            timestamp: Date.now(),
+            address: `${address.slice(0, 6)}...${address.slice(-4)}`,
+            txId: data.txId
+          };
+          const updatedHistory = [newClaim, ...claimHistory.slice(0, 4)];
+          setClaimHistory(updatedHistory);
+          localStorage.setItem('faucetClaimHistory', JSON.stringify(updatedHistory));
+          setSuccessMessage(`Claimed ${stats.faucetAmount} STX!`);
+          setShowSuccess(true);
+          setTimeout(() => setShowSuccess(false), 5000);
+          fetchStats();
+        },
+        onCancel: () => {},
+      });
+    } catch (e) {
+      console.error("Claim error:", e);
+    } finally {
+      setClaiming(false);
+    }
   };
 
   const handleFund = async () => {
@@ -171,563 +186,254 @@ export default function TokenFaucet() {
     if (isNaN(amount) || amount <= 0) return;
 
     setFunding(true);
-    const microSTX = amount * 1000000;
+    const microSTX = Math.floor(amount * 1000000);
 
-    await showConnect({
-      contractAddress,
-      contractName,
-      functionName: 'fund-faucet',
-      functionArgs: [uintCV(microSTX)],
-      network,
-      anchorMode: AnchorMode.Any,
-      postConditionMode: PostConditionMode.Allow,
-      onFinish: (data) => {
-        setSuccessMsg(`Funding ${amount} STX...`);
-        setShowSuccess(true);
-        setFunding(false);
-        setTimeout(() => setShowSuccess(false), 5000);
-      },
-      onCancel: () => {
-        setFunding(false);
-      },
-      userSession,
-      appDetails: {
-        name: 'STX Faucet',
-        icon: window.location.origin + '/logo.png',
-      }
-    });
+    try {
+      const { openContractCall } = await import('@stacks/connect');
+      
+      await openContractCall({
+        contractAddress: CONTRACT_ADDRESS,
+        contractName: CONTRACT_NAME,
+        functionName: 'fund-faucet',
+        functionArgs: [uintCV(microSTX)],
+        network,
+        onFinish: () => {
+          setSuccessMessage(`Funded ${amount} STX to the faucet!`);
+          setShowSuccess(true);
+          setTimeout(() => setShowSuccess(false), 5000);
+          fetchStats();
+        },
+        onCancel: () => {},
+      });
+    } catch (e) {
+      console.error("Fund error:", e);
+    } finally {
+      setFunding(false);
+    }
   };
 
-  const walletAddress = userData ? userData.profile.stxAddress.testnet : '';
+  const walletAddress = userData?.profile?.stxAddress?.testnet || '';
   const canClaim = userData && timeRemaining === 0 && stats.isActive;
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      width: '100vw',
-      background: 'linear-gradient(135deg, #0a0e27 0%, #1a1034 50%, #0d1b2a 100%)',
-      fontFamily: '"Orbitron", "Courier New", monospace',
-      color: '#00ff9d',
-      padding: '20px',
-      position: 'relative',
-      overflowX: 'hidden',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center'
-    }}>
-      {/* Animated Background Grid */}
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        backgroundImage: `
-          linear-gradient(rgba(0, 255, 157, 0.03) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(0, 255, 157, 0.03) 1px, transparent 1px)
-        `,
-        backgroundSize: '50px 50px',
-        animation: 'gridPulse 20s ease-in-out infinite',
-        pointerEvents: 'none'
-      }} />
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+      {/* Background pattern */}
+      <div className="fixed inset-0 bg-[linear-gradient(rgba(34,197,94,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(34,197,94,0.03)_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none" />
+      
+      <div className="relative z-10 container mx-auto px-4 py-8 md:py-16 max-w-5xl">
+        {/* Success Toast */}
+        {showSuccess && (
+          <div className="fixed top-4 right-4 z-50 animate-in slide-in-from-right">
+            <Card className="bg-green-500/10 border-green-500/30">
+              <CardContent className="flex items-center gap-3 p-4">
+                <CheckCircle className="h-5 w-5 text-green-500" />
+                <span className="text-green-400 font-medium">{successMessage}</span>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
-      <style>{`
-        @keyframes gridPulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-        
-        @keyframes neonPulse {
-          0%, 100% { 
-            box-shadow: 0 0 5px #00ff9d, 0 0 10px #00ff9d, 0 0 20px #00ff9d;
-          }
-          50% { 
-            box-shadow: 0 0 10px #00ff9d, 0 0 20px #00ff9d, 0 0 40px #00ff9d, 0 0 60px #00ff9d;
-          }
-        }
-
-        @keyframes glitch {
-          0%, 100% { transform: translateX(0); }
-          20% { transform: translateX(-2px); }
-          40% { transform: translateX(2px); }
-          60% { transform: translateX(-2px); }
-          80% { transform: translateX(2px); }
-        }
-      `}</style>
-
-      <div style={{
-        maxWidth: '1200px',
-        width: '100%',
-        margin: '0 auto',
-        position: 'relative',
-        zIndex: 1
-      }}>
         {/* Header */}
-        <motion.header 
-          initial={{ y: -50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.8 }}
-          style={{
-            textAlign: 'center',
-            marginBottom: '60px',
-            marginTop: '40px'
-          }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '15px',
-            marginBottom: '20px'
-          }}>
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-            >
-               <img src="/logo.png" alt="Logo" style={{ width: '64px', height: '64px', filter: 'drop-shadow(0 0 10px #00ff9d)' }} />
-            </motion.div>
-            <h1 style={{
-              fontSize: 'min(3.5rem, 10vw)',
-              fontWeight: 900,
-              margin: 0,
-              textShadow: '0 0 20px rgba(0, 255, 157, 0.8), 0 0 40px rgba(0, 255, 157, 0.4)',
-              letterSpacing: '3px',
-              textTransform: 'uppercase'
-            }}>
-              STX FAUCET
+        <header className="text-center mb-12">
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <div className="p-3 rounded-full bg-primary/10 border border-primary/20">
+              <Droplets className="h-10 w-10 md:h-12 md:w-12 text-primary" />
+            </div>
+            <h1 className="text-3xl md:text-5xl font-bold bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">
+              STX Faucet
             </h1>
           </div>
-          <p style={{
-            fontFamily: '"Share Tech Mono", monospace',
-            fontSize: '1.1rem',
-            color: '#8b5cf6',
-            textShadow: '0 0 10px rgba(139, 92, 246, 0.5)',
-            letterSpacing: '2px'
-          }}>
-            &gt; CLAIM_FREE_STX_TOKENS.sh
+          <p className="text-muted-foreground text-sm md:text-base">
+            Get free testnet STX tokens for development
           </p>
-        </motion.header>
+        </header>
 
-        {/* Stats Bar */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '20px',
-          marginBottom: '40px'
-        }}>
-          {[
-            { icon: Activity, label: 'TOTAL DISPENSED', value: stats.totalDispensed + ' STX', color: '#00ff9d' },
-            { icon: Wallet, label: 'TOTAL CLAIMS', value: stats.totalClaims, color: '#8b5cf6' },
-            { icon: CheckCircle, label: 'FAUCET BALANCE', value: stats.contractBalance + ' STX', color: '#06b6d4' }
-          ].map(({ icon: Icon, label, value, color }, idx) => (
-            <motion.div 
-              key={idx}
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ delay: idx * 0.1 }}
-              whileHover={{ y: -5, boxShadow: `0 5px 30px ${color}40` }}
-              style={{
-                background: 'rgba(10, 14, 39, 0.6)',
-                border: `1px solid ${color}40`,
-                borderRadius: '12px',
-                padding: '20px',
-                backdropFilter: 'blur(10px)',
-                boxShadow: `0 0 20px ${color}20`,
-                transition: 'all 0.3s ease'
-              }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                <Icon size={18} color={color} />
-                <span style={{
-                  fontFamily: '"Share Tech Mono", monospace',
-                  fontSize: '0.7rem',
-                  color: '#64748b',
-                  letterSpacing: '1px'
-                }}>{label}</span>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8">
+          <Card className="bg-slate-900/50 border-slate-800">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Activity className="h-4 w-4 text-green-500" />
+                <span className="text-xs text-muted-foreground">Dispensed</span>
               </div>
-              <div style={{
-                fontSize: '1.2rem',
-                fontWeight: 700,
-                color: color,
-                textShadow: `0 0 10px ${color}80`
-              }}>
-                {value}
+              <p className="text-lg md:text-xl font-bold text-green-400">
+                {stats.totalDispensed.toLocaleString()} STX
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="bg-slate-900/50 border-slate-800">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Wallet className="h-4 w-4 text-purple-500" />
+                <span className="text-xs text-muted-foreground">Claims</span>
               </div>
-            </motion.div>
-          ))}
+              <p className="text-lg md:text-xl font-bold text-purple-400">
+                {stats.totalClaims.toLocaleString()}
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="bg-slate-900/50 border-slate-800">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Coins className="h-4 w-4 text-cyan-500" />
+                <span className="text-xs text-muted-foreground">Balance</span>
+              </div>
+              <p className="text-lg md:text-xl font-bold text-cyan-400">
+                {stats.contractBalance.toLocaleString()} STX
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="bg-slate-900/50 border-slate-800">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Droplets className="h-4 w-4 text-amber-500" />
+                <span className="text-xs text-muted-foreground">Per Claim</span>
+              </div>
+              <p className="text-lg md:text-xl font-bold text-amber-400">
+                {stats.faucetAmount} STX
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Main Claim Interface */}
-        <motion.div 
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          style={{
-            background: 'rgba(10, 14, 39, 0.8)',
-            border: '2px solid #00ff9d40',
-            borderRadius: '20px',
-            padding: '40px',
-            backdropFilter: 'blur(20px)',
-            boxShadow: '0 10px 60px rgba(0, 255, 157, 0.2)',
-            position: 'relative',
-            overflow: 'hidden',
-            marginBottom: '40px'
-          }}>
-          <AnimatePresence>
-            {showSuccess && (
-              <motion.div 
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: 'rgba(0, 255, 157, 0.1)',
-                  backdropFilter: 'blur(5px)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  zIndex: 10
-                }}>
-                <motion.div 
-                  initial={{ scale: 0.8 }}
-                  animate={{ scale: 1 }}
-                  style={{
-                    background: 'rgba(10, 14, 39, 0.95)',
-                    border: '2px solid #00ff9d',
-                    borderRadius: '20px',
-                    padding: '40px',
-                    textAlign: 'center',
-                    boxShadow: '0 0 60px rgba(0, 255, 157, 0.4)'
-                  }}>
-                  <CheckCircle size={64} color="#00ff9d" style={{
-                    marginBottom: '20px',
-                    filter: 'drop-shadow(0 0 20px #00ff9d)'
-                  }} />
-                  <h2 style={{
-                    fontSize: '2rem',
-                    marginBottom: '10px',
-                    color: '#00ff9d',
-                    textShadow: '0 0 20px rgba(0, 255, 157, 0.8)'
-                  }}>SUCCESS!</h2>
-                  <p style={{
-                    fontFamily: '"Share Tech Mono", monospace',
-                    fontSize: '1.2rem',
-                    color: '#8b5cf6'
-                  }}>
-                    {successMsg}
-                  </p>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {!userData ? (
-            <div style={{ textAlign: 'center' }}>
-              <div style={{
-                marginBottom: '30px',
-                padding: '40px',
-                background: 'rgba(0, 255, 157, 0.05)',
-                border: '1px dashed #00ff9d40',
-                borderRadius: '15px'
-              }}>
-                <Wallet size={48} color="#00ff9d" style={{ marginBottom: '20px' }} />
-                <h3 style={{ fontSize: '1.5rem', marginBottom: '10px' }}>CONNECT WALLET</h3>
-                <p style={{ color: '#64748b', fontFamily: '"Share Tech Mono", monospace' }}>
-                  Please connect your Stacks wallet to claim tokens
+        {/* Main Card */}
+        <Card className="bg-slate-900/70 border-slate-800 mb-8">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Droplets className="h-5 w-5 text-primary" />
+              Claim Tokens
+            </CardTitle>
+            <CardDescription>
+              {stats.isActive ? 'Faucet is online and ready' : 'Faucet is currently offline'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {!userData ? (
+              <div className="text-center py-8">
+                <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                  <Wallet className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Connect Your Wallet</h3>
+                <p className="text-muted-foreground text-sm mb-6">
+                  Connect a Stacks wallet to claim testnet tokens
                 </p>
+                <Button onClick={handleConnect} size="lg" className="w-full md:w-auto">
+                  <Wallet className="mr-2 h-4 w-4" />
+                  Connect Wallet
+                </Button>
               </div>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleConnect}
-                style={{
-                  width: '100%',
-                  padding: '20px',
-                  background: 'linear-gradient(135deg, #00ff9d 0%, #00d4aa 100%)',
-                  border: 'none',
-                  borderRadius: '12px',
-                  color: '#0a0e27',
-                  fontSize: '1.3rem',
-                  fontWeight: 900,
-                  fontFamily: '"Orbitron", monospace',
-                  cursor: 'pointer',
-                  letterSpacing: '2px',
-                  textTransform: 'uppercase',
-                  boxShadow: '0 5px 30px rgba(0, 255, 157, 0.4)'
-                }}
-              >
-                CONNECT WALLET
-              </motion.button>
-            </div>
-          ) : (
-            <>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '30px',
-                padding: '15px',
-                background: 'rgba(0, 255, 157, 0.05)',
-                borderRadius: '12px',
-                border: '1px solid #00ff9d20'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{
-                    width: '10px',
-                    height: '10px',
-                    borderRadius: '50%',
-                    background: '#00ff9d',
-                    boxShadow: '0 0 10px #00ff9d'
-                  }} />
-                  <span style={{ fontFamily: '"Share Tech Mono", monospace', fontSize: '0.9rem' }}>
-                    {walletAddress.slice(0, 8)}...{walletAddress.slice(-6)}
-                  </span>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#64748b',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '5px',
-                    fontFamily: '"Share Tech Mono", monospace',
-                    fontSize: '0.8rem'
-                  }}
-                >
-                  <LogOut size={14} /> LOGOUT
-                </button>
-              </div>
-
-              {timeRemaining > 0 && (
-                <div style={{
-                  textAlign: 'center',
-                  marginBottom: '30px',
-                  padding: '20px',
-                  background: 'rgba(139, 92, 246, 0.1)',
-                  border: '1px solid #8b5cf640',
-                  borderRadius: '12px'
-                }}>
-                  <Clock size={32} color="#8b5cf6" style={{
-                    marginBottom: '10px',
-                    filter: 'drop-shadow(0 0 10px #8b5cf6)'
-                  }} />
-                  <div style={{
-                    fontFamily: '"Share Tech Mono", monospace',
-                    fontSize: '0.9rem',
-                    color: '#64748b',
-                    marginBottom: '5px',
-                    letterSpacing: '1px'
-                  }}>
-                    COOLDOWN ACTIVE
+            ) : (
+              <>
+                {/* Connected Wallet */}
+                <div className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                    <span className="text-sm font-mono text-muted-foreground">
+                      {walletAddress.slice(0, 8)}...{walletAddress.slice(-6)}
+                    </span>
                   </div>
-                  <div style={{
-                    fontSize: '2.5rem',
-                    fontWeight: 700,
-                    color: '#8b5cf6',
-                    textShadow: '0 0 15px rgba(139, 92, 246, 0.8)',
-                    fontFamily: '"Orbitron", monospace'
-                  }}>
-                    {formatTime(timeRemaining)}
-                  </div>
+                  <Button variant="ghost" size="sm" onClick={handleLogout}>
+                    <LogOut className="h-4 w-4 mr-1" />
+                    Logout
+                  </Button>
                 </div>
-              )}
 
-              <motion.button
-                whileHover={canClaim && !claiming ? { scale: 1.02, boxShadow: '0 8px 40px rgba(0, 255, 157, 0.6)' } : {}}
-                whileTap={canClaim && !claiming ? { scale: 0.98 } : {}}
-                onClick={handleClaim}
-                disabled={!canClaim || claiming}
-                style={{
-                  width: '100%',
-                  padding: '20px',
-                  background: canClaim 
-                    ? 'linear-gradient(135deg, #00ff9d 0%, #00d4aa 100%)'
-                    : 'rgba(100, 116, 139, 0.3)',
-                  border: 'none',
-                  borderRadius: '12px',
-                  color: canClaim ? '#0a0e27' : '#64748b',
-                  fontSize: '1.3rem',
-                  fontWeight: 900,
-                  fontFamily: '"Orbitron", monospace',
-                  cursor: canClaim ? 'pointer' : 'not-allowed',
-                  transition: 'background 0.3s ease',
-                  letterSpacing: '2px',
-                  textTransform: 'uppercase',
-                  position: 'relative',
-                  overflow: 'hidden',
-                  boxShadow: canClaim ? '0 5px 30px rgba(0, 255, 157, 0.4)' : 'none'
-                }}
-              >
-                {claiming ? (
-                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                    <Zap size={24} style={{ animation: 'glitch 0.5s infinite' }} />
-                    PROMPTING...
-                  </span>
-                ) : (
-                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                    <Droplets size={24} />
-                    CLAIM {stats.faucetAmount} STX
-                  </span>
+                {/* Cooldown Timer */}
+                {timeRemaining > 0 && (
+                  <div className="text-center p-6 bg-purple-500/5 border border-purple-500/20 rounded-lg">
+                    <Clock className="h-8 w-8 text-purple-500 mx-auto mb-3" />
+                    <p className="text-sm text-muted-foreground mb-2">Cooldown Active</p>
+                    <p className="text-3xl font-bold font-mono text-purple-400">
+                      {formatTime(timeRemaining)}
+                    </p>
+                  </div>
                 )}
-              </motion.button>
 
-              <div style={{
-                marginTop: '40px',
-                paddingTop: '20px',
-                borderTop: '1px solid rgba(139, 92, 246, 0.2)'
-              }}>
-                <h4 style={{
-                  color: '#8b5cf6',
-                  fontFamily: '"Share Tech Mono", monospace',
-                  fontSize: '0.9rem',
-                  marginBottom: '15px'
-                }}>&gt; FUND_FAUCET.sh</h4>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <div style={{ position: 'relative', flex: 1 }}>
-                    <Coins size={18} color="#8b5cf6" style={{
-                      position: 'absolute',
-                      left: '12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)'
-                    }} />
-                    <input 
+                {/* Claim Button */}
+                <Button 
+                  onClick={handleClaim} 
+                  disabled={!canClaim || claiming}
+                  size="lg"
+                  className="w-full h-14 text-lg"
+                >
+                  {claiming ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <Droplets className="mr-2 h-5 w-5" />
+                      Claim {stats.faucetAmount} STX
+                    </>
+                  )}
+                </Button>
+
+                {/* Fund Section */}
+                <div className="pt-6 border-t border-slate-800">
+                  <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                    Fund the Faucet
+                  </h4>
+                  <div className="flex gap-3">
+                    <Input
                       type="number"
                       value={fundAmount}
                       onChange={(e) => setFundAmount(e.target.value)}
-                      style={{
-                        width: '100%',
-                        padding: '12px 12px 12px 40px',
-                        background: 'rgba(0, 0, 0, 0.4)',
-                        border: '1px solid #8b5cf640',
-                        borderRadius: '10px',
-                        color: '#8b5cf6',
-                        fontFamily: '"Share Tech Mono", monospace'
-                      }}
+                      placeholder="Amount in STX"
+                      className="bg-slate-800/50"
                     />
+                    <Button 
+                      onClick={handleFund} 
+                      disabled={funding}
+                      variant="secondary"
+                    >
+                      {funding ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Fund'}
+                    </Button>
                   </div>
-                  <motion.button
-                    whileHover={{ scale: 1.05, background: '#8b5cf6', color: '#0a0e27' }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleFund}
-                    disabled={funding}
-                    style={{
-                      padding: '0 25px',
-                      background: 'transparent',
-                      border: '1px solid #8b5cf6',
-                      borderRadius: '10px',
-                      color: '#8b5cf6',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                      fontFamily: '"Share Tech Mono", monospace'
-                    }}
-                  >
-                    {funding ? '...' : 'FUND'}
-                  </motion.button>
                 </div>
-              </div>
-            </>
-          )}
-        </motion.div>
+              </>
+            )}
+          </CardContent>
+        </Card>
 
-        {/* Recent Claims */}
-        <AnimatePresence>
-          {claimHistory.length > 0 && (
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              style={{
-                marginTop: '40px'
-              }}>
-              <h3 style={{
-                fontSize: '1.5rem',
-                marginBottom: '20px',
-                color: '#8b5cf6',
-                textShadow: '0 0 15px rgba(139, 92, 246, 0.6)',
-                fontFamily: '"Orbitron", monospace',
-                letterSpacing: '2px'
-              }}>
-                &gt; CLAIM_HISTORY.log
-              </h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {/* Claim History */}
+        {claimHistory.length > 0 && (
+          <Card className="bg-slate-900/50 border-slate-800">
+            <CardHeader>
+              <CardTitle className="text-lg">Recent Claims</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
                 {claimHistory.map((claim, idx) => (
-                  <motion.a
-                    initial={{ x: -20, opacity: 0 }}
-                    animate={{ x: 0, opacity: 1 }}
-                    transition={{ delay: 0.7 + idx * 0.1 }}
+                  <a
                     key={idx}
                     href={`https://explorer.hiro.so/txid/${claim.txId}?chain=testnet`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    style={{
-                      textDecoration: 'none',
-                      background: 'rgba(10, 14, 39, 0.6)',
-                      border: '1px solid #00ff9d20',
-                      borderRadius: '10px',
-                      padding: '15px 20px',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      backdropFilter: 'blur(10px)',
-                      transition: 'all 0.3s ease',
-                      cursor: 'pointer'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(10, 14, 39, 0.8)';
-                      e.currentTarget.style.borderColor = '#00ff9d40';
-                      e.currentTarget.style.transform = 'translateX(5px)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(10, 14, 39, 0.6)';
-                      e.currentTarget.style.borderColor = '#00ff9d20';
-                      e.currentTarget.style.transform = 'translateX(0)';
-                    }}
+                    className="flex items-center justify-between p-3 bg-slate-800/30 rounded-lg hover:bg-slate-800/50 transition-colors group"
                   >
-                    <div style={{
-                      fontFamily: '"Share Tech Mono", monospace',
-                      fontSize: '0.9rem',
-                      color: '#64748b'
-                    }}>
+                    <span className="text-sm font-mono text-muted-foreground">
                       {claim.address}
-                    </div>
-                    <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                      <span style={{
-                        color: '#00ff9d',
-                        fontWeight: 700,
-                        textShadow: '0 0 10px rgba(0, 255, 157, 0.6)'
-                      }}>
+                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-green-400 font-semibold">
                         +{claim.amount} STX
                       </span>
-                      <span style={{
-                        fontFamily: '"Share Tech Mono", monospace',
-                        fontSize: '0.8rem',
-                        color: '#64748b'
-                      }}>
+                      <span className="text-xs text-muted-foreground">
                         {new Date(claim.timestamp).toLocaleTimeString()}
                       </span>
+                      <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
-                  </motion.a>
+                  </a>
                 ))}
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Footer */}
-        <footer style={{
-          marginTop: '60px',
-          textAlign: 'center',
-          padding: '30px',
-          borderTop: '1px solid #00ff9d20',
-          fontFamily: '"Share Tech Mono", monospace',
-          fontSize: '0.85rem',
-          color: '#64748b',
-          letterSpacing: '1px'
-        }}>
-          <p>&gt; POWERED_BY_STACKS_BLOCKCHAIN</p>
-          <div style={{ marginTop: '10px', color: '#334155', display: 'flex', justifyContent: 'center', gap: '20px' }}>
-            <span>&gt; v2.2.0</span>
-            <span>&gt; NETWORK: TESTNET</span>
-            <span>&gt; STATUS: SECURE</span>
-          </div>
+        <footer className="mt-12 text-center text-muted-foreground text-sm">
+          <p>Powered by Stacks Blockchain • Testnet</p>
         </footer>
       </div>
     </div>
