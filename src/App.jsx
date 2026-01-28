@@ -45,13 +45,35 @@ export default function App() {
         functionArgs: [],
         senderAddress: CONTRACT_ADDRESS,
       });
-      const data = cvToValue(result).value;
+      
+      // cvToValue returns nested structure: { value: { 'total-dispensed': { value: bigint }, ... } }
+      const parsed = cvToValue(result, true);
+      console.log('Faucet stats raw:', JSON.stringify(parsed, (k, v) => typeof v === 'bigint' ? v.toString() : v));
+      
+      // The response is (ok { ... }) so parsed.value contains the tuple
+      const data = parsed.value || parsed;
+      
+      // Helper to safely extract numeric value from nested CV structure
+      const getNum = (field) => {
+        const val = data[field];
+        if (val === null || val === undefined) return 0;
+        // If it's a nested object with .value, extract it
+        const raw = typeof val === 'object' && val.value !== undefined ? val.value : val;
+        return Number(raw);
+      };
+      
+      const getBool = (field) => {
+        const val = data[field];
+        if (val === null || val === undefined) return false;
+        return typeof val === 'object' && val.value !== undefined ? Boolean(val.value) : Boolean(val);
+      };
+      
       setStats({
-        totalDispensed: Number(data['total-dispensed']) / 1000000,
-        totalClaims: Number(data['total-claims']),
-        faucetAmount: Number(data['faucet-amount']) / 1000000,
-        contractBalance: Number(data['contract-balance']) / 1000000,
-        isActive: data['is-active']
+        totalDispensed: getNum('total-dispensed') / 1000000,
+        totalClaims: getNum('total-claims'),
+        faucetAmount: getNum('faucet-amount') / 1000000 || 10,
+        contractBalance: getNum('contract-balance') / 1000000,
+        isActive: getBool('is-active')
       });
     } catch (e) {
       console.error("Error fetching stats:", e);
@@ -68,7 +90,11 @@ export default function App() {
         functionArgs: [standardPrincipalCV(address)],
         senderAddress: address,
       });
-      const seconds = Number(cvToValue(result).value);
+      const parsed = cvToValue(result, true);
+      console.log('Cooldown raw:', JSON.stringify(parsed, (k, v) => typeof v === 'bigint' ? v.toString() : v));
+      // Response is (ok uint) - parsed.value contains the uint value
+      const val = parsed.value;
+      const seconds = typeof val === 'object' && val.value !== undefined ? Number(val.value) : Number(val || 0);
       setTimeRemaining(seconds * 1000);
     } catch (e) {
       console.error("Error fetching cooldown:", e);
