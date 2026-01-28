@@ -1,27 +1,32 @@
 import React, { useState, useEffect } from 'react';
-import { Droplets, Clock, Wallet, Zap, Activity, CheckCircle, LogOut } from 'lucide-react';
+import { Droplets, Clock, Wallet, Zap, Activity, CheckCircle, LogOut, Coins } from 'lucide-react';
 import { AppConfig, UserSession, showConnect } from '@stacks/connect';
 import { StacksTestnet } from '@stacks/network';
 import { 
   callReadOnlyFunction, 
   cvToValue, 
   standardPrincipalCV,
+  uintCV,
   AnchorMode,
   PostConditionMode
 } from '@stacks/transactions';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const appConfig = new AppConfig(['store_write', 'publish_data']);
 const userSession = new UserSession({ appConfig });
 const network = new StacksTestnet();
-const contractAddress = 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM';
+const contractAddress = 'ST30VGN68PSGVWGNMD0HH2WQMM5T486EK3WBNTHCY';
 const contractName = 'token-faucet';
 
 export default function TokenFaucet() {
   const [userData, setUserData] = useState(null);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [claiming, setClaiming] = useState(false);
+  const [funding, setFunding] = useState(false);
+  const [fundAmount, setFundAmount] = useState('100');
   const [claimHistory, setClaimHistory] = useState([]);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
   const [stats, setStats] = useState({
     totalDispensed: '0',
     totalClaims: '0',
@@ -64,10 +69,10 @@ export default function TokenFaucet() {
       });
       const data = cvToValue(result).value;
       setStats({
-        totalDispensed: (parseInt(data['total-dispensed']) / 1000000).toLocaleString(),
+        totalDispensed: (Number(data['total-dispensed']) / 1000000).toLocaleString(),
         totalClaims: data['total-claims'].toString(),
-        faucetAmount: (parseInt(data['faucet-amount']) / 1000000).toString(),
-        contractBalance: (parseInt(data['contract-balance']) / 1000000).toLocaleString(),
+        faucetAmount: (Number(data['faucet-amount']) / 1000000).toString(),
+        contractBalance: (Number(data['contract-balance']) / 1000000).toLocaleString(),
         isActive: data['is-active']
       });
     } catch (e) {
@@ -85,7 +90,7 @@ export default function TokenFaucet() {
         functionArgs: [standardPrincipalCV(address)],
         senderAddress: address,
       });
-      const seconds = parseInt(cvToValue(result).value);
+      const seconds = Number(cvToValue(result).value);
       setTimeRemaining(seconds * 1000);
     } catch (e) {
       console.error("Error fetching cooldown:", e);
@@ -144,12 +149,46 @@ export default function TokenFaucet() {
         const updatedHistory = [newClaim, ...claimHistory.slice(0, 4)];
         setClaimHistory(updatedHistory);
         localStorage.setItem('claimHistory', JSON.stringify(updatedHistory));
+        setSuccessMsg(`Claiming ${stats.faucetAmount} STX...`);
         setShowSuccess(true);
         setClaiming(false);
         setTimeout(() => setShowSuccess(false), 5000);
       },
       onCancel: () => {
         setClaiming(false);
+      },
+      userSession,
+      appDetails: {
+        name: 'STX Faucet',
+        icon: window.location.origin + '/logo.png',
+      }
+    });
+  };
+
+  const handleFund = async () => {
+    if (!userData || funding) return;
+    const amount = Number(fundAmount);
+    if (isNaN(amount) || amount <= 0) return;
+
+    setFunding(true);
+    const microSTX = amount * 1000000;
+
+    await showConnect({
+      contractAddress,
+      contractName,
+      functionName: 'fund-faucet',
+      functionArgs: [uintCV(microSTX)],
+      network,
+      anchorMode: AnchorMode.Any,
+      postConditionMode: PostConditionMode.Allow,
+      onFinish: (data) => {
+        setSuccessMsg(`Funding ${amount} STX...`);
+        setShowSuccess(true);
+        setFunding(false);
+        setTimeout(() => setShowSuccess(false), 5000);
+      },
+      onCancel: () => {
+        setFunding(false);
       },
       userSession,
       appDetails: {
@@ -190,8 +229,6 @@ export default function TokenFaucet() {
       }} />
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
-        
         @keyframes gridPulse {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
@@ -205,22 +242,13 @@ export default function TokenFaucet() {
             box-shadow: 0 0 10px #00ff9d, 0 0 20px #00ff9d, 0 0 40px #00ff9d, 0 0 60px #00ff9d;
           }
         }
-        
-        @keyframes slideIn {
-          from {
-            transform: translateY(20px);
-            opacity: 0;
-          }
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
-        }
 
-        @keyframes successPulse {
-          0% { transform: scale(0.8); opacity: 0; }
-          50% { transform: scale(1.1); opacity: 1; }
-          100% { transform: scale(1); opacity: 1; }
+        @keyframes glitch {
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-2px); }
+          40% { transform: translateX(2px); }
+          60% { transform: translateX(-2px); }
+          80% { transform: translateX(2px); }
         }
       `}</style>
 
@@ -232,22 +260,27 @@ export default function TokenFaucet() {
         zIndex: 1
       }}>
         {/* Header */}
-        <header style={{
-          textAlign: 'center',
-          marginBottom: '60px',
-          marginTop: '40px',
-          animation: 'slideIn 0.8s ease-out'
-        }}>
+        <motion.header 
+          initial={{ y: -50, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8 }}
+          style={{
+            textAlign: 'center',
+            marginBottom: '60px',
+            marginTop: '40px'
+          }}>
           <div style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: '15px',
             marginBottom: '20px'
           }}>
-            <Droplets size={48} style={{
-              filter: 'drop-shadow(0 0 10px #00ff9d)',
-              animation: 'neonPulse 2s ease-in-out infinite'
-            }} />
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+            >
+               <img src="/logo.png" alt="Logo" style={{ width: '64px', height: '64px', filter: 'drop-shadow(0 0 10px #00ff9d)' }} />
+            </motion.div>
             <h1 style={{
               fontSize: 'min(3.5rem, 10vw)',
               fontWeight: 900,
@@ -268,33 +301,35 @@ export default function TokenFaucet() {
           }}>
             &gt; CLAIM_FREE_STX_TOKENS.sh
           </p>
-        </header>
+        </motion.header>
 
         {/* Stats Bar */}
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
           gap: '20px',
-          marginBottom: '40px',
-          animation: 'slideIn 1s ease-out'
+          marginBottom: '40px'
         }}>
           {[
             { icon: Activity, label: 'TOTAL DISPENSED', value: stats.totalDispensed + ' STX', color: '#00ff9d' },
             { icon: Wallet, label: 'TOTAL CLAIMS', value: stats.totalClaims, color: '#8b5cf6' },
             { icon: CheckCircle, label: 'FAUCET BALANCE', value: stats.contractBalance + ' STX', color: '#06b6d4' }
           ].map(({ icon: Icon, label, value, color }, idx) => (
-            <div key={idx} style={{
-              background: 'rgba(10, 14, 39, 0.6)',
-              border: `1px solid ${color}40`,
-              borderRadius: '12px',
-              padding: '20px',
-              backdropFilter: 'blur(10px)',
-              boxShadow: `0 0 20px ${color}20`,
-              transition: 'all 0.3s ease',
-              animation: 'slideIn 1s ease-out forwards',
-              opacity: 0,
-              animationDelay: `${0.2 + idx * 0.1}s`
-            }}>
+            <motion.div 
+              key={idx}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: idx * 0.1 }}
+              whileHover={{ y: -5, boxShadow: `0 5px 30px ${color}40` }}
+              style={{
+                background: 'rgba(10, 14, 39, 0.6)',
+                border: `1px solid ${color}40`,
+                borderRadius: '12px',
+                padding: '20px',
+                backdropFilter: 'blur(10px)',
+                boxShadow: `0 0 20px ${color}20`,
+                transition: 'all 0.3s ease'
+              }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
                 <Icon size={18} color={color} />
                 <span style={{
@@ -312,63 +347,74 @@ export default function TokenFaucet() {
               }}>
                 {value}
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
 
         {/* Main Claim Interface */}
-        <div style={{
-          background: 'rgba(10, 14, 39, 0.8)',
-          border: '2px solid #00ff9d40',
-          borderRadius: '20px',
-          padding: '40px',
-          backdropFilter: 'blur(20px)',
-          boxShadow: '0 10px 60px rgba(0, 255, 157, 0.2)',
-          animation: 'slideIn 1.2s ease-out',
-          position: 'relative',
-          overflow: 'hidden',
-          marginBottom: '40px'
-        }}>
-          {showSuccess && (
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'rgba(0, 255, 157, 0.1)',
-              backdropFilter: 'blur(5px)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 10,
-              animation: 'successPulse 0.5s ease-out'
-            }}>
-              <div style={{
-                background: 'rgba(10, 14, 39, 0.95)',
-                border: '2px solid #00ff9d',
-                borderRadius: '20px',
-                padding: '40px',
-                textAlign: 'center',
-                boxShadow: '0 0 60px rgba(0, 255, 157, 0.4)'
-              }}>
-                <CheckCircle size={64} color="#00ff9d" style={{
-                  marginBottom: '20px',
-                  filter: 'drop-shadow(0 0 20px #00ff9d)'
-                }} />
-                <h2 style={{
-                  fontSize: '2rem',
-                  marginBottom: '10px',
-                  color: '#00ff9d',
-                  textShadow: '0 0 20px rgba(0, 255, 157, 0.8)'
-                }}>TRANSACTION SENT!</h2>
-                <p style={{
-                  fontFamily: '"Share Tech Mono", monospace',
-                  fontSize: '1.2rem',
-                  color: '#8b5cf6'
+        <motion.div 
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+          style={{
+            background: 'rgba(10, 14, 39, 0.8)',
+            border: '2px solid #00ff9d40',
+            borderRadius: '20px',
+            padding: '40px',
+            backdropFilter: 'blur(20px)',
+            boxShadow: '0 10px 60px rgba(0, 255, 157, 0.2)',
+            position: 'relative',
+            overflow: 'hidden',
+            marginBottom: '40px'
+          }}>
+          <AnimatePresence>
+            {showSuccess && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'rgba(0, 255, 157, 0.1)',
+                  backdropFilter: 'blur(5px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 10
                 }}>
-                  Claiming {stats.faucetAmount} STX...
-                </p>
-              </div>
-            </div>
-          )}
+                <motion.div 
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: 1 }}
+                  style={{
+                    background: 'rgba(10, 14, 39, 0.95)',
+                    border: '2px solid #00ff9d',
+                    borderRadius: '20px',
+                    padding: '40px',
+                    textAlign: 'center',
+                    boxShadow: '0 0 60px rgba(0, 255, 157, 0.4)'
+                  }}>
+                  <CheckCircle size={64} color="#00ff9d" style={{
+                    marginBottom: '20px',
+                    filter: 'drop-shadow(0 0 20px #00ff9d)'
+                  }} />
+                  <h2 style={{
+                    fontSize: '2rem',
+                    marginBottom: '10px',
+                    color: '#00ff9d',
+                    textShadow: '0 0 20px rgba(0, 255, 157, 0.8)'
+                  }}>SUCCESS!</h2>
+                  <p style={{
+                    fontFamily: '"Share Tech Mono", monospace',
+                    fontSize: '1.2rem',
+                    color: '#8b5cf6'
+                  }}>
+                    {successMsg}
+                  </p>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {!userData ? (
             <div style={{ textAlign: 'center' }}>
@@ -385,7 +431,9 @@ export default function TokenFaucet() {
                   Please connect your Stacks wallet to claim tokens
                 </p>
               </div>
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handleConnect}
                 style={{
                   width: '100%',
@@ -398,14 +446,13 @@ export default function TokenFaucet() {
                   fontWeight: 900,
                   fontFamily: '"Orbitron", monospace',
                   cursor: 'pointer',
-                  transition: 'all 0.3s ease',
                   letterSpacing: '2px',
                   textTransform: 'uppercase',
                   boxShadow: '0 5px 30px rgba(0, 255, 157, 0.4)'
                 }}
               >
                 CONNECT WALLET
-              </button>
+              </motion.button>
             </div>
           ) : (
             <>
@@ -483,7 +530,9 @@ export default function TokenFaucet() {
                 </div>
               )}
 
-              <button
+              <motion.button
+                whileHover={canClaim && !claiming ? { scale: 1.02, boxShadow: '0 8px 40px rgba(0, 255, 157, 0.6)' } : {}}
+                whileTap={canClaim && !claiming ? { scale: 0.98 } : {}}
                 onClick={handleClaim}
                 disabled={!canClaim || claiming}
                 style={{
@@ -499,7 +548,7 @@ export default function TokenFaucet() {
                   fontWeight: 900,
                   fontFamily: '"Orbitron", monospace',
                   cursor: canClaim ? 'pointer' : 'not-allowed',
-                  transition: 'all 0.3s ease',
+                  transition: 'background 0.3s ease',
                   letterSpacing: '2px',
                   textTransform: 'uppercase',
                   position: 'relative',
@@ -518,96 +567,149 @@ export default function TokenFaucet() {
                     CLAIM {stats.faucetAmount} STX
                   </span>
                 )}
-              </button>
+              </motion.button>
 
-              <p style={{
-                marginTop: '20px',
-                textAlign: 'center',
-                fontFamily: '"Share Tech Mono", monospace',
-                fontSize: '0.85rem',
-                color: '#64748b',
-                letterSpacing: '1px'
+              <div style={{
+                marginTop: '40px',
+                paddingTop: '20px',
+                borderTop: '1px solid rgba(139, 92, 246, 0.2)'
               }}>
-                &gt; {stats.isActive ? 'FAUCET_ONLINE' : 'FAUCET_OFFLINE'} • {stats.faucetAmount} STX / claim
-              </p>
+                <h4 style={{
+                  color: '#8b5cf6',
+                  fontFamily: '"Share Tech Mono", monospace',
+                  fontSize: '0.9rem',
+                  marginBottom: '15px'
+                }}>&gt; FUND_FAUCET.sh</h4>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <div style={{ position: 'relative', flex: 1 }}>
+                    <Coins size={18} color="#8b5cf6" style={{
+                      position: 'absolute',
+                      left: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)'
+                    }} />
+                    <input 
+                      type="number"
+                      value={fundAmount}
+                      onChange={(e) => setFundAmount(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 12px 12px 40px',
+                        background: 'rgba(0, 0, 0, 0.4)',
+                        border: '1px solid #8b5cf640',
+                        borderRadius: '10px',
+                        color: '#8b5cf6',
+                        fontFamily: '"Share Tech Mono", monospace'
+                      }}
+                    />
+                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.05, background: '#8b5cf6', color: '#0a0e27' }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleFund}
+                    disabled={funding}
+                    style={{
+                      padding: '0 25px',
+                      background: 'transparent',
+                      border: '1px solid #8b5cf6',
+                      borderRadius: '10px',
+                      color: '#8b5cf6',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      fontFamily: '"Share Tech Mono", monospace'
+                    }}
+                  >
+                    {funding ? '...' : 'FUND'}
+                  </motion.button>
+                </div>
+              </div>
             </>
           )}
-        </div>
+        </motion.div>
 
-        {claimHistory.length > 0 && (
-          <div style={{
-            marginTop: '40px',
-            animation: 'slideIn 1.4s ease-out'
-          }}>
-            <h3 style={{
-              fontSize: '1.5rem',
-              marginBottom: '20px',
-              color: '#8b5cf6',
-              textShadow: '0 0 15px rgba(139, 92, 246, 0.6)',
-              fontFamily: '"Orbitron", monospace',
-              letterSpacing: '2px'
-            }}>
-              &gt; CLAIM_HISTORY.log
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {claimHistory.map((claim, idx) => (
-                <a
-                  key={idx}
-                  href={`https://explorer.hiro.so/txid/${claim.txId}?chain=testnet`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    textDecoration: 'none',
-                    background: 'rgba(10, 14, 39, 0.6)',
-                    border: '1px solid #00ff9d20',
-                    borderRadius: '10px',
-                    padding: '15px 20px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    backdropFilter: 'blur(10px)',
-                    transition: 'all 0.3s ease',
-                    cursor: 'pointer'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'rgba(10, 14, 39, 0.8)';
-                    e.currentTarget.style.borderColor = '#00ff9d40';
-                    e.currentTarget.style.transform = 'translateX(5px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(10, 14, 39, 0.6)';
-                    e.currentTarget.style.borderColor = '#00ff9d20';
-                    e.currentTarget.style.transform = 'translateX(0)';
-                  }}
-                >
-                  <div style={{
-                    fontFamily: '"Share Tech Mono", monospace',
-                    fontSize: '0.9rem',
-                    color: '#64748b'
-                  }}>
-                    {claim.address}
-                  </div>
-                  <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-                    <span style={{
-                      color: '#00ff9d',
-                      fontWeight: 700,
-                      textShadow: '0 0 10px rgba(0, 255, 157, 0.6)'
-                    }}>
-                      +{claim.amount} STX
-                    </span>
-                    <span style={{
+        {/* Recent Claims */}
+        <AnimatePresence>
+          {claimHistory.length > 0 && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              style={{
+                marginTop: '40px'
+              }}>
+              <h3 style={{
+                fontSize: '1.5rem',
+                marginBottom: '20px',
+                color: '#8b5cf6',
+                textShadow: '0 0 15px rgba(139, 92, 246, 0.6)',
+                fontFamily: '"Orbitron", monospace',
+                letterSpacing: '2px'
+              }}>
+                &gt; CLAIM_HISTORY.log
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {claimHistory.map((claim, idx) => (
+                  <motion.a
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: 0.7 + idx * 0.1 }}
+                    key={idx}
+                    href={`https://explorer.hiro.so/txid/${claim.txId}?chain=testnet`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      textDecoration: 'none',
+                      background: 'rgba(10, 14, 39, 0.6)',
+                      border: '1px solid #00ff9d20',
+                      borderRadius: '10px',
+                      padding: '15px 20px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      backdropFilter: 'blur(10px)',
+                      transition: 'all 0.3s ease',
+                      cursor: 'pointer'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(10, 14, 39, 0.8)';
+                      e.currentTarget.style.borderColor = '#00ff9d40';
+                      e.currentTarget.style.transform = 'translateX(5px)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(10, 14, 39, 0.6)';
+                      e.currentTarget.style.borderColor = '#00ff9d20';
+                      e.currentTarget.style.transform = 'translateX(0)';
+                    }}
+                  >
+                    <div style={{
                       fontFamily: '"Share Tech Mono", monospace',
-                      fontSize: '0.8rem',
+                      fontSize: '0.9rem',
                       color: '#64748b'
                     }}>
-                      {new Date(claim.timestamp).toLocaleTimeString()}
-                    </span>
-                  </div>
-                </a>
-              ))}
-            </div>
-          </div>
-        )}
+                      {claim.address}
+                    </div>
+                    <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                      <span style={{
+                        color: '#00ff9d',
+                        fontWeight: 700,
+                        textShadow: '0 0 10px rgba(0, 255, 157, 0.6)'
+                      }}>
+                        +{claim.amount} STX
+                      </span>
+                      <span style={{
+                        fontFamily: '"Share Tech Mono", monospace',
+                        fontSize: '0.8rem',
+                        color: '#64748b'
+                      }}>
+                        {new Date(claim.timestamp).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  </motion.a>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Footer */}
         <footer style={{
@@ -622,7 +724,7 @@ export default function TokenFaucet() {
         }}>
           <p>&gt; POWERED_BY_STACKS_BLOCKCHAIN</p>
           <div style={{ marginTop: '10px', color: '#334155', display: 'flex', justifyContent: 'center', gap: '20px' }}>
-            <span>&gt; v2.1.0</span>
+            <span>&gt; v2.2.0</span>
             <span>&gt; NETWORK: TESTNET</span>
             <span>&gt; STATUS: SECURE</span>
           </div>
