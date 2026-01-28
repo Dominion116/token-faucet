@@ -5,7 +5,11 @@ import {
   callReadOnlyFunction, 
   cvToValue, 
   standardPrincipalCV,
-  uintCV
+  uintCV,
+  makeStandardSTXPostCondition,
+  makeContractSTXPostCondition,
+  FungibleConditionCode,
+  PostConditionMode
 } from '@stacks/transactions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -101,16 +105,36 @@ export default function App() {
     }
   }, []);
 
+  const fetchRecentClaims = useCallback(async () => {
+    try {
+      const response = await fetch(
+        `https://api.testnet.hiro.so/extended/v1/contract/${CONTRACT_ADDRESS}.${CONTRACT_NAME}/transactions?function_name=claim&limit=5`
+      );
+      const data = await response.json();
+      
+      const successfulClaims = data.results
+        .filter(tx => tx.tx_status === 'success')
+        .map(tx => ({
+          amount: stats.faucetAmount, // Default to faucet amount as event parsing is complex
+          timestamp: tx.burn_block_time * 1000 || Date.now(), // Fallback if pending
+          address: `${tx.sender_address.slice(0, 6)}...${tx.sender_address.slice(-4)}`,
+          txId: tx.tx_id
+        }));
+        
+      if (successfulClaims.length > 0) {
+        setClaimHistory(successfulClaims);
+      }
+    } catch (e) {
+      console.error("Error fetching recent claims:", e);
+    }
+  }, [stats.faucetAmount]);
+
   useEffect(() => {
     if (userSession.isUserSignedIn()) {
       setUserData(userSession.loadUserData());
     }
     fetchStats();
-    
-    const history = localStorage.getItem('faucetClaimHistory');
-    if (history) {
-      setClaimHistory(JSON.parse(history));
-    }
+    fetchRecentClaims();
 
     const interval = setInterval(() => {
       if (userSession.isUserSignedIn()) {
@@ -118,10 +142,11 @@ export default function App() {
         updateCooldown(address);
       }
       fetchStats();
+      fetchRecentClaims();
     }, 10000);
 
     return () => clearInterval(interval);
-  }, [fetchStats, updateCooldown]);
+  }, [fetchStats, updateCooldown, fetchRecentClaims]);
 
   useEffect(() => {
     if (userData) {
@@ -172,9 +197,20 @@ export default function App() {
     setClaiming(true);
     
     const address = userData.profile.stxAddress.testnet;
+    const claimAmountMicro = Math.floor(stats.faucetAmount * 1000000);
     
     try {
       const { openContractCall } = await import('@stacks/connect');
+      
+      // Post-condition: Contract will send exactly the faucet amount to user
+      const postConditions = [
+        makeContractSTXPostCondition(
+          CONTRACT_ADDRESS,
+          CONTRACT_NAME,
+          FungibleConditionCode.Equal,
+          claimAmountMicro
+        )
+      ];
       
       await openContractCall({
         contractAddress: CONTRACT_ADDRESS,
@@ -182,19 +218,15 @@ export default function App() {
         functionName: 'claim',
         functionArgs: [],
         network,
+        postConditions,
+        postConditionMode: PostConditionMode.Deny,
         onFinish: (data) => {
-          const newClaim = {
-            amount: stats.faucetAmount,
-            timestamp: Date.now(),
-            address: `${address.slice(0, 6)}...${address.slice(-4)}`,
-            txId: data.txId
-          };
-          const updatedHistory = [newClaim, ...claimHistory.slice(0, 4)];
-          setClaimHistory(updatedHistory);
-          localStorage.setItem('faucetClaimHistory', JSON.stringify(updatedHistory));
+        onFinish: (data) => {
           setSuccessMessage(`Claimed ${stats.faucetAmount} STX!`);
           setShowSuccess(true);
           setTimeout(() => setShowSuccess(false), 5000);
+          fetchStats();
+        },
           fetchStats();
         },
         onCancel: () => {},
@@ -213,9 +245,19 @@ export default function App() {
 
     setFunding(true);
     const microSTX = Math.floor(amount * 1000000);
+    const address = userData.profile.stxAddress.testnet;
 
     try {
       const { openContractCall } = await import('@stacks/connect');
+      
+      // Post-condition: User will send exactly the specified amount to contract
+      const postConditions = [
+        makeStandardSTXPostCondition(
+          address,
+          FungibleConditionCode.Equal,
+          microSTX
+        )
+      ];
       
       await openContractCall({
         contractAddress: CONTRACT_ADDRESS,
@@ -223,6 +265,8 @@ export default function App() {
         functionName: 'fund-faucet',
         functionArgs: [uintCV(microSTX)],
         network,
+        postConditions,
+        postConditionMode: PostConditionMode.Deny,
         onFinish: () => {
           setSuccessMessage(`Funded ${amount} STX to the faucet!`);
           setShowSuccess(true);
