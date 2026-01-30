@@ -319,34 +319,34 @@ export default function App() {
           </div>
         )}
 
-        <div className="container mx-auto px-4 py-12 md:py-20 max-w-4xl">
+        <div className="container mx-auto px-4 py-8 md:py-12 max-w-4xl">
           {/* Hero */}
-          <div className="text-center mb-16 space-y-6">
+          <div className="text-center mb-10 space-y-4">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-sm font-medium mb-4">
               <div className="w-2 h-2 rounded-full bg-violet-500 animate-pulse" />
               Stacks Testnet
             </div>
             
-            <h1 className="text-5xl md:text-7xl font-bold tracking-tight">
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
               <span className="text-foreground">Get </span>
               <span className="text-gradient">Free STX</span>
             </h1>
             
-            <p className="text-muted-foreground text-lg md:text-xl max-w-xl mx-auto leading-relaxed">
+            <p className="text-muted-foreground text-base md:text-lg max-w-lg mx-auto">
               Claim testnet tokens instantly. No registration, no limits on how many times you can return.
             </p>
           </div>
 
           {/* Main Claim Card */}
-          <Card className="mb-8 overflow-hidden border-0 bg-card/50 backdrop-blur-sm glow">
+          <Card className="mb-6 overflow-hidden border-0 bg-card/50 backdrop-blur-sm glow">
             <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-fuchsia-500/5" />
-            <CardContent className="relative p-8 md:p-10">
+            <CardContent className="relative p-6 md:p-8">
               {!userData ? (
-                <div className="text-center py-8 space-y-6">
-                  <div className="relative mx-auto w-20 h-20">
-                    <div className="absolute inset-0 bg-violet-500/20 rounded-2xl blur-xl" />
-                    <div className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
-                      <Wallet className="h-9 w-9 text-white" />
+                <div className="text-center py-4 space-y-5">
+                  <div className="relative mx-auto w-16 h-16">
+                    <div className="absolute inset-0 bg-violet-500/20 rounded-xl blur-xl" />
+                    <div className="relative w-16 h-16 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
+                      <Wallet className="h-7 w-7 text-white" />
                     </div>
                   </div>
                   
@@ -367,9 +367,9 @@ export default function App() {
                   </Button>
                 </div>
               ) : (
-                <div className="space-y-8">
+                <div className="space-y-5">
                   {/* Wallet Badge */}
-                  <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 border border-border">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
                         <Wallet className="h-5 w-5 text-white" />
@@ -392,17 +392,17 @@ export default function App() {
                   </div>
 
                   {/* Claim Amount Display */}
-                  <div className="text-center py-6">
-                    <p className="text-sm text-muted-foreground mb-2">Available to claim</p>
+                  <div className="text-center py-4">
+                    <p className="text-sm text-muted-foreground mb-1">Available to claim</p>
                     <div className="flex items-baseline justify-center gap-2">
-                      <span className="text-6xl md:text-7xl font-bold text-gradient">{stats.faucetAmount}</span>
-                      <span className="text-2xl text-muted-foreground font-medium">STX</span>
+                      <span className="text-5xl md:text-6xl font-bold text-gradient">{stats.faucetAmount}</span>
+                      <span className="text-xl text-muted-foreground font-medium">STX</span>
                     </div>
                   </div>
 
                   {/* Cooldown Timer */}
                   {timeRemaining > 0 && (
-                    <div className="flex items-center justify-center gap-4 p-5 rounded-xl bg-secondary/30 border border-border">
+                    <div className="flex items-center justify-center gap-3 p-4 rounded-xl bg-secondary/30 border border-border">
                       <Clock className="h-5 w-5 text-violet-400" />
                       <div className="text-center">
                         <p className="text-xs text-muted-foreground uppercase tracking-wider">Next claim in</p>
@@ -440,51 +440,51 @@ export default function App() {
           </Card>
 
           {/* Stats Row */}
-          <div className="grid grid-cols-3 gap-4 mb-8">
-            <div className="group p-5 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 hover:border-violet-500/30 transition-colors">
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 hover:border-violet-500/30 transition-colors">
               <div className="flex items-center gap-2 text-muted-foreground mb-2">
                 <TrendingUp className="h-4 w-4" />
                 <span className="text-xs font-medium uppercase tracking-wider">Dispensed</span>
               </div>
-              <p className="text-2xl font-bold text-foreground">
+              <p className="text-xl font-bold text-foreground">
                 {stats.totalDispensed.toLocaleString()}
-                <span className="text-sm font-normal text-muted-foreground ml-1">STX</span>
+                <span className="text-xs font-normal text-muted-foreground ml-1">STX</span>
               </p>
             </div>
             
-            <div className="group p-5 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 hover:border-violet-500/30 transition-colors">
+            <div className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 hover:border-violet-500/30 transition-colors">
               <div className="flex items-center gap-2 text-muted-foreground mb-2">
                 <Users className="h-4 w-4" />
                 <span className="text-xs font-medium uppercase tracking-wider">Total Claims</span>
               </div>
-              <p className="text-2xl font-bold text-foreground">
+              <p className="text-xl font-bold text-foreground">
                 {stats.totalClaims.toLocaleString()}
               </p>
             </div>
             
-            <div className="group p-5 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 hover:border-violet-500/30 transition-colors">
+            <div className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 hover:border-violet-500/30 transition-colors">
               <div className="flex items-center gap-2 text-muted-foreground mb-2">
                 <Wallet className="h-4 w-4" />
                 <span className="text-xs font-medium uppercase tracking-wider">Balance</span>
               </div>
-              <p className="text-2xl font-bold text-foreground">
+              <p className="text-xl font-bold text-foreground">
                 {stats.contractBalance.toLocaleString()}
-                <span className="text-sm font-normal text-muted-foreground ml-1">STX</span>
+                <span className="text-xs font-normal text-muted-foreground ml-1">STX</span>
               </p>
             </div>
           </div>
 
           {/* Fund Section - Only show when connected */}
           {userData && (
-            <Card className="mb-8 border-border/50 bg-card/30 backdrop-blur-sm">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-base font-medium text-foreground">Support the Faucet</CardTitle>
+            <Card className="mb-6 border-border/50 bg-card/30 backdrop-blur-sm">
+              <CardHeader className="pb-3 pt-4 px-4">
+                <CardTitle className="text-sm font-medium text-foreground">Support the Faucet</CardTitle>
                 <CardDescription className="text-sm">
                   Help keep the faucet running by contributing STX
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="flex gap-3">
+              <CardContent className="px-4 pb-4">
+                <div className="flex gap-2">
                   <Input
                     type="number"
                     value={fundAmount}
@@ -507,27 +507,27 @@ export default function App() {
 
           {/* Recent Claims */}
           {claimHistory.length > 0 && (
-            <div className="space-y-4">
-              <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider px-1">Recent Activity</h3>
-              <div className="space-y-2">
+            <div className="space-y-3">
+              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">Recent Activity</h3>
+              <div className="space-y-1.5">
                 {claimHistory.map((claim, idx) => (
                   <a
                     key={idx}
                     href={`https://explorer.hiro.so/txid/${claim.txId}?chain=testnet`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between p-4 rounded-xl bg-card/30 backdrop-blur-sm border border-border/50 hover:border-violet-500/30 hover:bg-card/50 transition-all group"
+                    className="flex items-center justify-between p-3 rounded-lg bg-card/30 backdrop-blur-sm border border-border/50 hover:border-violet-500/30 hover:bg-card/50 transition-all group"
                   >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
-                        <Zap className="h-4 w-4 text-violet-400" />
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-md bg-violet-500/10 flex items-center justify-center">
+                        <Zap className="h-3.5 w-3.5 text-violet-400" />
                       </div>
                       <span className="text-sm font-mono text-muted-foreground">
                         {claim.address}
                       </span>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <span className="text-foreground font-medium">
+                    <div className="flex items-center gap-3">
+                      <span className="text-foreground font-medium text-sm">
                         +{claim.amount} STX
                       </span>
                       <span className="text-xs text-muted-foreground">
@@ -544,7 +544,7 @@ export default function App() {
 
         {/* Footer */}
         <footer className="border-t border-border/50 mt-auto">
-          <div className="container mx-auto px-4 py-6 flex items-center justify-between text-sm text-muted-foreground">
+          <div className="container mx-auto px-4 py-4 flex items-center justify-between text-xs text-muted-foreground">
             <p>Built on Stacks</p>
             <a 
               href="https://explorer.hiro.so/?chain=testnet" 
