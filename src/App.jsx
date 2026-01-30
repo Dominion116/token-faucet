@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Wallet, Clock, ArrowRight, Zap, TrendingUp, Users, ExternalLink, Loader2, Copy, Check } from 'lucide-react';
+import { Wallet, Clock, Zap, TrendingUp, Users, ExternalLink, Loader2, Copy, Check } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 
 const appConfig = new AppConfig(['store_write', 'publish_data']);
@@ -301,20 +301,13 @@ export default function App() {
         onLogout={handleLogout}
       />
       
-      {/* Gradient orbs */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-violet-500/20 rounded-full blur-3xl animate-pulse-slow" />
-        <div className="absolute top-1/2 -left-40 w-80 h-80 bg-fuchsia-500/15 rounded-full blur-3xl animate-pulse-slow" />
-        <div className="absolute -bottom-20 right-1/3 w-72 h-72 bg-violet-600/10 rounded-full blur-3xl" />
-      </div>
-      
-      <main className="flex-1 relative z-10">
+      <main className="flex-1">
         {/* Success Toast */}
         {showSuccess && (
           <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-top fade-in duration-300">
-            <div className="flex items-center gap-3 px-5 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-full backdrop-blur-sm">
-              <div className="w-2 h-2 rounded-full bg-emerald-500" />
-              <span className="text-emerald-400 font-medium text-sm">{successMessage}</span>
+            <div className="flex items-center gap-3 px-4 py-2.5 bg-card border border-border rounded-lg shadow-lg">
+              <Check className="h-4 w-4 text-primary" />
+              <span className="text-foreground font-medium text-sm">{successMessage}</span>
             </div>
           </div>
         )}
@@ -322,14 +315,13 @@ export default function App() {
         <div className="container mx-auto px-4 py-8 md:py-12 max-w-4xl">
           {/* Hero */}
           <div className="text-center mb-10 space-y-4">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-sm font-medium mb-4">
-              <div className="w-2 h-2 rounded-full bg-violet-500 animate-pulse" />
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary border border-border text-muted-foreground text-sm font-medium mb-4">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
               Stacks Testnet
             </div>
             
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-              <span className="text-foreground">Get </span>
-              <span className="text-gradient">Free STX</span>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">
+              Get Free STX
             </h1>
             
             <p className="text-muted-foreground text-base md:text-lg max-w-lg mx-auto">
@@ -338,16 +330,12 @@ export default function App() {
           </div>
 
           {/* Main Claim Card */}
-          <Card className="mb-6 overflow-hidden border-0 bg-card/50 backdrop-blur-sm glow">
-            <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-fuchsia-500/5" />
-            <CardContent className="relative p-6 md:p-8">
+          <Card className="mb-6">
+            <CardContent className="p-6 md:p-8">
               {!userData ? (
                 <div className="text-center py-4 space-y-5">
-                  <div className="relative mx-auto w-16 h-16">
-                    <div className="absolute inset-0 bg-violet-500/20 rounded-xl blur-xl" />
-                    <div className="relative w-16 h-16 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
-                      <Wallet className="h-7 w-7 text-white" />
-                    </div>
+                  <div className="mx-auto w-14 h-14 rounded-xl bg-primary flex items-center justify-center">
+                    <Wallet className="h-6 w-6 text-primary-foreground" />
                   </div>
                   
                   <div className="space-y-2">
@@ -360,19 +348,19 @@ export default function App() {
                   <Button 
                     onClick={handleConnect} 
                     size="lg" 
-                    className="h-14 px-8 text-base font-medium bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 border-0 shadow-lg shadow-violet-500/25"
+                    className="h-12 px-6"
                   >
+                    <Wallet className="mr-2 h-4 w-4" />
                     Connect Wallet
-                    <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </div>
               ) : (
                 <div className="space-y-5">
                   {/* Wallet Badge */}
-                  <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-secondary border border-border">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
-                        <Wallet className="h-5 w-5 text-white" />
+                      <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
+                        <Wallet className="h-4 w-4 text-primary-foreground" />
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Connected</p>
@@ -395,15 +383,15 @@ export default function App() {
                   <div className="text-center py-4">
                     <p className="text-sm text-muted-foreground mb-1">Available to claim</p>
                     <div className="flex items-baseline justify-center gap-2">
-                      <span className="text-5xl md:text-6xl font-bold text-gradient">{stats.faucetAmount}</span>
+                      <span className="text-5xl md:text-6xl font-bold text-foreground">{stats.faucetAmount}</span>
                       <span className="text-xl text-muted-foreground font-medium">STX</span>
                     </div>
                   </div>
 
                   {/* Cooldown Timer */}
                   {timeRemaining > 0 && (
-                    <div className="flex items-center justify-center gap-3 p-4 rounded-xl bg-secondary/30 border border-border">
-                      <Clock className="h-5 w-5 text-violet-400" />
+                    <div className="flex items-center justify-center gap-3 p-4 rounded-xl bg-secondary border border-border">
+                      <Clock className="h-5 w-5 text-primary" />
                       <div className="text-center">
                         <p className="text-xs text-muted-foreground uppercase tracking-wider">Next claim in</p>
                         <p className="text-3xl font-bold font-mono text-foreground tracking-wider">
@@ -418,7 +406,7 @@ export default function App() {
                     onClick={handleClaim} 
                     disabled={!canClaim || claiming}
                     size="lg"
-                    className="w-full h-14 text-base font-medium bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 border-0 shadow-lg shadow-violet-500/25 disabled:opacity-40 disabled:shadow-none"
+                    className="w-full h-12"
                   >
                     {claiming ? (
                       <>
@@ -441,7 +429,7 @@ export default function App() {
 
           {/* Stats Row */}
           <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 hover:border-violet-500/30 transition-colors">
+            <div className="p-4 rounded-xl bg-card border border-border hover:border-primary/30 transition-colors">
               <div className="flex items-center gap-2 text-muted-foreground mb-2">
                 <TrendingUp className="h-4 w-4" />
                 <span className="text-xs font-medium uppercase tracking-wider">Dispensed</span>
@@ -452,7 +440,7 @@ export default function App() {
               </p>
             </div>
             
-            <div className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 hover:border-violet-500/30 transition-colors">
+            <div className="p-4 rounded-xl bg-card border border-border hover:border-primary/30 transition-colors">
               <div className="flex items-center gap-2 text-muted-foreground mb-2">
                 <Users className="h-4 w-4" />
                 <span className="text-xs font-medium uppercase tracking-wider">Total Claims</span>
@@ -462,7 +450,7 @@ export default function App() {
               </p>
             </div>
             
-            <div className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 hover:border-violet-500/30 transition-colors">
+            <div className="p-4 rounded-xl bg-card border border-border hover:border-primary/30 transition-colors">
               <div className="flex items-center gap-2 text-muted-foreground mb-2">
                 <Wallet className="h-4 w-4" />
                 <span className="text-xs font-medium uppercase tracking-wider">Balance</span>
@@ -476,7 +464,7 @@ export default function App() {
 
           {/* Fund Section - Only show when connected */}
           {userData && (
-            <Card className="mb-6 border-border/50 bg-card/30 backdrop-blur-sm">
+            <Card className="mb-6">
               <CardHeader className="pb-3 pt-4 px-4">
                 <CardTitle className="text-sm font-medium text-foreground">Support the Faucet</CardTitle>
                 <CardDescription className="text-sm">
@@ -490,7 +478,7 @@ export default function App() {
                     value={fundAmount}
                     onChange={(e) => setFundAmount(e.target.value)}
                     placeholder="Amount"
-                    className="bg-secondary/50 border-border font-mono"
+                    className="font-mono"
                   />
                   <Button 
                     onClick={handleFund} 
@@ -516,11 +504,11 @@ export default function App() {
                     href={`https://explorer.hiro.so/txid/${claim.txId}?chain=testnet`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between p-3 rounded-lg bg-card/30 backdrop-blur-sm border border-border/50 hover:border-violet-500/30 hover:bg-card/50 transition-all group"
+                    className="flex items-center justify-between p-3 rounded-lg bg-card border border-border hover:border-primary/30 hover:bg-secondary/50 transition-all group"
                   >
                     <div className="flex items-center gap-2">
-                      <div className="w-7 h-7 rounded-md bg-violet-500/10 flex items-center justify-center">
-                        <Zap className="h-3.5 w-3.5 text-violet-400" />
+                      <div className="w-7 h-7 rounded-md bg-secondary flex items-center justify-center">
+                        <Zap className="h-3.5 w-3.5 text-primary" />
                       </div>
                       <span className="text-sm font-mono text-muted-foreground">
                         {claim.address}

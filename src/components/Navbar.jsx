@@ -8,12 +8,12 @@ export default function Navbar({ userData, onConnect, onLogout }) {
   const walletAddress = userData?.profile?.stxAddress?.testnet || '';
 
   return (
-    <nav className="border-b border-border/50 bg-background/80 backdrop-blur-xl sticky top-0 z-50">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between max-w-4xl">
+    <nav className="border-b border-border bg-background sticky top-0 z-50">
+      <div className="container mx-auto px-4 h-14 flex items-center justify-between max-w-4xl">
         {/* Logo */}
-        <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
-            <span className="text-white font-bold text-sm">§</span>
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+            <span className="text-primary-foreground font-bold text-sm">§</span>
           </div>
           <span className="text-lg font-semibold text-foreground">
             STX Faucet
@@ -33,8 +33,8 @@ export default function Navbar({ userData, onConnect, onLogout }) {
 
           {userData ? (
             <div className="flex items-center gap-2 ml-2">
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary/50 rounded-lg border border-border/50">
-                <div className="h-2 w-2 rounded-full bg-emerald-500" />
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-secondary rounded-lg border border-border">
+                <div className="h-2 w-2 rounded-full bg-primary" />
                 <span className="text-xs font-mono text-foreground">
                   {walletAddress.slice(0, 6)}...{walletAddress.slice(-4)}
                 </span>
@@ -52,7 +52,7 @@ export default function Navbar({ userData, onConnect, onLogout }) {
             <Button 
               onClick={onConnect} 
               size="sm" 
-              className="ml-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 border-0 text-white"
+              className="ml-2"
             >
               <Wallet className="mr-2 h-4 w-4" />
               Connect
@@ -71,7 +71,7 @@ export default function Navbar({ userData, onConnect, onLogout }) {
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className="md:hidden border-t border-border/50 bg-background/95 backdrop-blur-xl px-4 py-4 space-y-3">
+        <div className="md:hidden border-t border-border bg-background px-4 py-4 space-y-3">
           <a 
             href="https://explorer.hiro.so/?chain=testnet" 
             target="_blank" 
@@ -81,11 +81,11 @@ export default function Navbar({ userData, onConnect, onLogout }) {
             Explorer <ExternalLink className="h-3 w-3" />
           </a>
 
-          <div className="pt-3 border-t border-border/50">
+          <div className="pt-3 border-t border-border">
             {userData ? (
               <div className="space-y-3">
-                <div className="flex items-center gap-2 px-3 py-2 bg-secondary/50 rounded-lg">
-                  <div className="h-2 w-2 rounded-full bg-emerald-500" />
+                <div className="flex items-center gap-2 px-3 py-2 bg-secondary rounded-lg">
+                  <div className="h-2 w-2 rounded-full bg-primary" />
                   <span className="text-xs font-mono text-foreground">{walletAddress.slice(0, 10)}...{walletAddress.slice(-6)}</span>
                 </div>
                 <Button 
@@ -101,7 +101,7 @@ export default function Navbar({ userData, onConnect, onLogout }) {
             ) : (
               <Button 
                 onClick={onConnect} 
-                className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 border-0"
+                className="w-full"
               >
                 <Wallet className="mr-2 h-4 w-4" />
                 Connect Wallet
