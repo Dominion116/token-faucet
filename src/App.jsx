@@ -14,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Droplets, Wallet, Clock, Activity, CheckCircle, Coins, ExternalLink, Loader2 } from 'lucide-react';
+import { Wallet, Clock, ArrowRight, Zap, TrendingUp, Users, ExternalLink, Loader2, Copy, Check } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 
 const appConfig = new AppConfig(['store_write', 'publish_data']);
@@ -285,224 +285,276 @@ export default function App() {
 
   const walletAddress = userData?.profile?.stxAddress?.testnet || '';
   const canClaim = userData && timeRemaining === 0 && stats.isActive;
+  const [copied, setCopied] = useState(false);
+
+  const copyAddress = () => {
+    navigator.clipboard.writeText(walletAddress);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col font-sans antialiased">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navbar 
         userData={userData}
         onConnect={handleConnect}
         onLogout={handleLogout}
       />
       
-      {/* Background pattern */}
-      <div className="fixed inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+      {/* Gradient orbs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-96 h-96 bg-violet-500/20 rounded-full blur-3xl animate-pulse-slow" />
+        <div className="absolute top-1/2 -left-40 w-80 h-80 bg-fuchsia-500/15 rounded-full blur-3xl animate-pulse-slow" />
+        <div className="absolute -bottom-20 right-1/3 w-72 h-72 bg-violet-600/10 rounded-full blur-3xl" />
+      </div>
       
-      <main className="flex-1 relative z-10 container mx-auto px-4 py-8 md:py-12 max-w-5xl">
+      <main className="flex-1 relative z-10">
         {/* Success Toast */}
         {showSuccess && (
-          <div className="fixed top-20 right-4 z-50 animate-in slide-in-from-right fade-in duration-300">
-            <Card className="bg-background border-green-500/50 shadow-lg">
-              <CardContent className="flex items-center gap-3 p-4">
-                <CheckCircle className="h-5 w-5 text-green-500" />
-                <span className="text-foreground font-medium">{successMessage}</span>
-              </CardContent>
-            </Card>
+          <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-top fade-in duration-300">
+            <div className="flex items-center gap-3 px-5 py-3 bg-emerald-500/10 border border-emerald-500/20 rounded-full backdrop-blur-sm">
+              <div className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="text-emerald-400 font-medium text-sm">{successMessage}</span>
+            </div>
           </div>
         )}
 
-        {/* Hero Section */}
-        <div className="text-center mb-12 animate-in slide-in-from-bottom duration-700 fade-in">
-          <h1 className="text-4xl md:text-6xl font-bold text-foreground tracking-tight mb-4">
-            Testnet Faucet
-          </h1>
-          <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto">
-            Get free Stacks (STX) tokens instantly for your blockchain development and testing needs.
-          </p>
-        </div>
+        <div className="container mx-auto px-4 py-8 md:py-12 max-w-4xl">
+          {/* Hero */}
+          <div className="text-center mb-10 space-y-4">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 text-sm font-medium mb-4">
+              <div className="w-2 h-2 rounded-full bg-violet-500 animate-pulse" />
+              Stacks Testnet
+            </div>
+            
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+              <span className="text-foreground">Get </span>
+              <span className="text-gradient">Free STX</span>
+            </h1>
+            
+            <p className="text-muted-foreground text-base md:text-lg max-w-lg mx-auto">
+              Claim testnet tokens instantly. No registration, no limits on how many times you can return.
+            </p>
+          </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-8">
-          <Card className="bg-card hover:bg-accent/50 transition-colors">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Activity className="h-4 w-4 text-chart-1" />
-                <span className="text-xs text-muted-foreground">Dispensed</span>
-              </div>
-              <p className="text-lg md:text-xl font-bold text-foreground">
-                {stats.totalDispensed.toLocaleString()} STX
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card hover:bg-accent/50 transition-colors">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Wallet className="h-4 w-4 text-chart-2" />
-                <span className="text-xs text-muted-foreground">Claims</span>
-              </div>
-              <p className="text-lg md:text-xl font-bold text-foreground">
-                {stats.totalClaims.toLocaleString()}
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card hover:bg-accent/50 transition-colors">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Coins className="h-4 w-4 text-chart-3" />
-                <span className="text-xs text-muted-foreground">Balance</span>
-              </div>
-              <p className="text-lg md:text-xl font-bold text-foreground">
-                {stats.contractBalance.toLocaleString()} STX
-              </p>
-            </CardContent>
-          </Card>
-          <Card className="bg-card hover:bg-accent/50 transition-colors">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Droplets className="h-4 w-4 text-chart-4" />
-                <span className="text-xs text-muted-foreground">Per Claim</span>
-              </div>
-              <p className="text-lg md:text-xl font-bold text-foreground">
-                {stats.faucetAmount} STX
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Card */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-foreground">
-              <Droplets className="h-5 w-5 text-primary" />
-              Claim Tokens
-            </CardTitle>
-            <CardDescription>
-              {stats.isActive ? 'Faucet is online and ready' : 'Faucet is currently offline'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {!userData ? (
-              <div className="text-center py-8">
-                <div className="mx-auto w-16 h-16 rounded-full bg-secondary flex items-center justify-center mb-4">
-                  <Wallet className="h-8 w-8 text-primary" />
-                </div>
-                <h3 className="text-lg font-semibold text-foreground mb-2">Connect Your Wallet</h3>
-                <p className="text-muted-foreground text-sm mb-6">
-                  Connect a Stacks wallet to claim testnet tokens
-                </p>
-                <Button onClick={handleConnect} size="lg" className="w-full md:w-auto">
-                  <Wallet className="mr-2 h-4 w-4" />
-                  Connect Wallet
-                </Button>
-              </div>
-            ) : (
-              <>
-                {/* Connected Wallet Info */}
-                <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg border border-border">
-                  <span className="text-sm text-muted-foreground">Logged in via Stacks</span>
-                  <div className="flex items-center gap-3">
-                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-sm font-mono text-foreground">
-                      {walletAddress.slice(0, 8)}...{walletAddress.slice(-6)}
-                    </span>
+          {/* Main Claim Card */}
+          <Card className="mb-6 overflow-hidden border-0 bg-card/50 backdrop-blur-sm glow">
+            <div className="absolute inset-0 bg-gradient-to-br from-violet-500/5 via-transparent to-fuchsia-500/5" />
+            <CardContent className="relative p-6 md:p-8">
+              {!userData ? (
+                <div className="text-center py-4 space-y-5">
+                  <div className="relative mx-auto w-16 h-16">
+                    <div className="absolute inset-0 bg-violet-500/20 rounded-xl blur-xl" />
+                    <div className="relative w-16 h-16 rounded-xl bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
+                      <Wallet className="h-7 w-7 text-white" />
+                    </div>
                   </div>
-                </div>
-
-                {/* Cooldown Timer */}
-                {timeRemaining > 0 && (
-                  <div className="text-center p-6 bg-secondary/20 border border-border rounded-lg">
-                    <Clock className="h-8 w-8 text-primary mx-auto mb-3" />
-                    <p className="text-sm text-muted-foreground mb-2">Cooldown Active</p>
-                    <p className="text-3xl font-bold font-mono text-foreground">
-                      {formatTime(timeRemaining)}
+                  
+                  <div className="space-y-2">
+                    <h3 className="text-2xl font-semibold text-foreground">Connect to claim</h3>
+                    <p className="text-muted-foreground max-w-sm mx-auto">
+                      Link your Stacks wallet to receive {stats.faucetAmount} STX every 10 minutes
                     </p>
                   </div>
-                )}
-
-                {/* Claim Button */}
-                <Button 
-                  onClick={handleClaim} 
-                  disabled={!canClaim || claiming}
-                  size="lg"
-                  className="w-full h-14 text-lg"
-                >
-                  {claiming ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Processing...
-                    </>
-                  ) : (
-                    <>
-                      <Droplets className="mr-2 h-5 w-5" />
-                      Claim {stats.faucetAmount} STX
-                    </>
-                  )}
-                </Button>
-
-                {/* Fund Section */}
-                <div className="pt-6 border-t border-border">
-                  <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                    Fund the Faucet
-                  </h4>
-                  <div className="flex gap-3">
-                    <Input
-                      type="number"
-                      value={fundAmount}
-                      onChange={(e) => setFundAmount(e.target.value)}
-                      placeholder="Amount in STX"
-                      className="bg-background border-input"
-                    />
+                  
+                  <Button 
+                    onClick={handleConnect} 
+                    size="lg" 
+                    className="h-14 px-8 text-base font-medium bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 border-0 shadow-lg shadow-violet-500/25"
+                  >
+                    Connect Wallet
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-5">
+                  {/* Wallet Badge */}
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-secondary/50 border border-border">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500 to-fuchsia-500 flex items-center justify-center">
+                        <Wallet className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Connected</p>
+                        <p className="font-mono text-sm text-foreground">
+                          {walletAddress.slice(0, 10)}...{walletAddress.slice(-8)}
+                        </p>
+                      </div>
+                    </div>
                     <Button 
-                      onClick={handleFund} 
-                      disabled={funding}
-                      variant="secondary"
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={copyAddress}
+                      className="text-muted-foreground hover:text-foreground"
                     >
-                      {funding ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Fund'}
+                      {copied ? <Check className="h-4 w-4 text-emerald-500" /> : <Copy className="h-4 w-4" />}
                     </Button>
                   </div>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
 
-        {/* Claim History */}
-        {claimHistory.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg text-foreground">Recent Claims</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
+                  {/* Claim Amount Display */}
+                  <div className="text-center py-4">
+                    <p className="text-sm text-muted-foreground mb-1">Available to claim</p>
+                    <div className="flex items-baseline justify-center gap-2">
+                      <span className="text-5xl md:text-6xl font-bold text-gradient">{stats.faucetAmount}</span>
+                      <span className="text-xl text-muted-foreground font-medium">STX</span>
+                    </div>
+                  </div>
+
+                  {/* Cooldown Timer */}
+                  {timeRemaining > 0 && (
+                    <div className="flex items-center justify-center gap-3 p-4 rounded-xl bg-secondary/30 border border-border">
+                      <Clock className="h-5 w-5 text-violet-400" />
+                      <div className="text-center">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider">Next claim in</p>
+                        <p className="text-3xl font-bold font-mono text-foreground tracking-wider">
+                          {formatTime(timeRemaining)}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Claim Button */}
+                  <Button 
+                    onClick={handleClaim} 
+                    disabled={!canClaim || claiming}
+                    size="lg"
+                    className="w-full h-14 text-base font-medium bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 border-0 shadow-lg shadow-violet-500/25 disabled:opacity-40 disabled:shadow-none"
+                  >
+                    {claiming ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Processing...
+                      </>
+                    ) : timeRemaining > 0 ? (
+                      'Cooldown Active'
+                    ) : (
+                      <>
+                        <Zap className="mr-2 h-5 w-5" />
+                        Claim {stats.faucetAmount} STX
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Stats Row */}
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 hover:border-violet-500/30 transition-colors">
+              <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                <TrendingUp className="h-4 w-4" />
+                <span className="text-xs font-medium uppercase tracking-wider">Dispensed</span>
+              </div>
+              <p className="text-xl font-bold text-foreground">
+                {stats.totalDispensed.toLocaleString()}
+                <span className="text-xs font-normal text-muted-foreground ml-1">STX</span>
+              </p>
+            </div>
+            
+            <div className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 hover:border-violet-500/30 transition-colors">
+              <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                <Users className="h-4 w-4" />
+                <span className="text-xs font-medium uppercase tracking-wider">Total Claims</span>
+              </div>
+              <p className="text-xl font-bold text-foreground">
+                {stats.totalClaims.toLocaleString()}
+              </p>
+            </div>
+            
+            <div className="group p-4 rounded-xl bg-card/50 backdrop-blur-sm border border-border/50 hover:border-violet-500/30 transition-colors">
+              <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                <Wallet className="h-4 w-4" />
+                <span className="text-xs font-medium uppercase tracking-wider">Balance</span>
+              </div>
+              <p className="text-xl font-bold text-foreground">
+                {stats.contractBalance.toLocaleString()}
+                <span className="text-xs font-normal text-muted-foreground ml-1">STX</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Fund Section - Only show when connected */}
+          {userData && (
+            <Card className="mb-6 border-border/50 bg-card/30 backdrop-blur-sm">
+              <CardHeader className="pb-3 pt-4 px-4">
+                <CardTitle className="text-sm font-medium text-foreground">Support the Faucet</CardTitle>
+                <CardDescription className="text-sm">
+                  Help keep the faucet running by contributing STX
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="px-4 pb-4">
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    value={fundAmount}
+                    onChange={(e) => setFundAmount(e.target.value)}
+                    placeholder="Amount"
+                    className="bg-secondary/50 border-border font-mono"
+                  />
+                  <Button 
+                    onClick={handleFund} 
+                    disabled={funding}
+                    variant="secondary"
+                    className="shrink-0"
+                  >
+                    {funding ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Fund'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Recent Claims */}
+          {claimHistory.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider px-1">Recent Activity</h3>
+              <div className="space-y-1.5">
                 {claimHistory.map((claim, idx) => (
                   <a
                     key={idx}
                     href={`https://explorer.hiro.so/txid/${claim.txId}?chain=testnet`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-between p-3 rounded-lg hover:bg-secondary/80 transition-colors group border border-transparent hover:border-border"
+                    className="flex items-center justify-between p-3 rounded-lg bg-card/30 backdrop-blur-sm border border-border/50 hover:border-violet-500/30 hover:bg-card/50 transition-all group"
                   >
-                    <span className="text-sm font-mono text-muted-foreground">
-                      {claim.address}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-md bg-violet-500/10 flex items-center justify-center">
+                        <Zap className="h-3.5 w-3.5 text-violet-400" />
+                      </div>
+                      <span className="text-sm font-mono text-muted-foreground">
+                        {claim.address}
+                      </span>
+                    </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-foreground font-medium">
+                      <span className="text-foreground font-medium text-sm">
                         +{claim.amount} STX
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {new Date(claim.timestamp).toLocaleTimeString()}
+                        {new Date(claim.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
-                      <ExternalLink className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <ExternalLink className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   </a>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </div>
+          )}
+        </div>
 
         {/* Footer */}
-        <footer className="mt-12 text-center text-muted-foreground text-sm">
-          <p>Powered by Stacks Blockchain • Testnet</p>
+        <footer className="border-t border-border/50 mt-auto">
+          <div className="container mx-auto px-4 py-4 flex items-center justify-between text-xs text-muted-foreground">
+            <p>Built on Stacks</p>
+            <a 
+              href="https://explorer.hiro.so/?chain=testnet" 
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground transition-colors flex items-center gap-1"
+            >
+              Explorer <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
         </footer>
       </main>
     </div>
